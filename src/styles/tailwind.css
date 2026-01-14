@@ -2,3 +2,32 @@
 @source '../**/*.{js,ts,jsx,tsx}';
 
 @import 'tw-animate-css';
+
+/* ================================
+   Overlay Scrollbar (Figma style)
+   ================================ */
+
+/* Chrome, Edge, Safari */
+.overlay-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overlay-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overlay-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(239, 68, 68, 0.35); /* red-500 แบบโปร่ง */
+  border-radius: 9999px;
+}
+
+.overlay-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(239, 68, 68, 0.55);
+}
+
+/* Firefox */
+.overlay-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(52, 50, 50, 0.35) transparent;
+}
+

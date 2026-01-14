@@ -1,7 +1,13 @@
-import { NVRStatus } from '@/app/types/nvr';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Badge } from '@/app/components/ui/badge';
-import { 
+import { NVRStatus } from "@/app/types/nvr";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/app/components/ui/card";
+import { Badge } from "@/app/components/ui/badge";
+import {
   Server,
   CheckCircle,
   AlertTriangle,
@@ -10,48 +16,69 @@ import {
   Eye,
   LogIn,
   Wifi,
-  MapPin
-} from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+  MapPin,
+} from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+import { useState, useEffect } from "react";
 
 interface NVRDashboardProps {
   nvrList: NVRStatus[];
 }
 
 export function NVRDashboard({ nvrList }: NVRDashboardProps) {
+  const [criticalPage, setCriticalPage] = useState(1);
+  const criticalPerPage = 5;
   // Calculate statistics
   const hasIssues = (nvr: NVRStatus) => {
-    return !nvr.ping_onu || !nvr.ping_nvr || !nvr.hdd_status || !nvr.normal_view || !nvr.check_login;
+    return (
+      !nvr.ping_onu ||
+      !nvr.ping_nvr ||
+      !nvr.hdd_status ||
+      !nvr.normal_view ||
+      !nvr.check_login
+    );
   };
 
   const totalNVR = nvrList.length;
-  const normalNVR = nvrList.filter(nvr => !hasIssues(nvr)).length;
-  const problemNVR = nvrList.filter(nvr => hasIssues(nvr)).length;
+  const normalNVR = nvrList.filter((nvr) => !hasIssues(nvr)).length;
+  const problemNVR = nvrList.filter((nvr) => hasIssues(nvr)).length;
 
   // Issue breakdown
-  const pingOnuFail = nvrList.filter(nvr => !nvr.ping_onu).length;
-  const pingNvrFail = nvrList.filter(nvr => !nvr.ping_nvr).length;
-  const hddFail = nvrList.filter(nvr => !nvr.hdd_status).length;
-  const viewFail = nvrList.filter(nvr => !nvr.normal_view).length;
-  const loginFail = nvrList.filter(nvr => !nvr.check_login).length;
+  const pingOnuFail = nvrList.filter((nvr) => !nvr.ping_onu).length;
+  const pingNvrFail = nvrList.filter((nvr) => !nvr.ping_nvr).length;
+  const hddFail = nvrList.filter((nvr) => !nvr.hdd_status).length;
+  const viewFail = nvrList.filter((nvr) => !nvr.normal_view).length;
+  const loginFail = nvrList.filter((nvr) => !nvr.check_login).length;
 
   // Charts data
   const statusData = [
-    { name: 'ปกติ', value: normalNVR, fill: '#22C55E' },
-    { name: 'มีปัญหา', value: problemNVR, fill: '#EF4444' },
+    { name: "ปกติ", value: normalNVR, fill: "#22C55E" },
+    { name: "มีปัญหา", value: problemNVR, fill: "#EF4444" },
   ];
 
   const issueData = [
-    { name: 'ONU Ping ไม่ได้', value: pingOnuFail, fill: '#DC2626' },
-    { name: 'NVR Ping ไม่ได้', value: pingNvrFail, fill: '#EF4444' },
-    { name: 'HDD มีปัญหา', value: hddFail, fill: '#F97316' },
-    { name: 'แสดงภาพผิดปกติ', value: viewFail, fill: '#F59E0B' },
-    { name: 'Login ไม่ได้', value: loginFail, fill: '#EAB308' },
-  ].filter(item => item.value > 0);
+    { name: "ONU Ping ไม่ได้", value: pingOnuFail, fill: "#DC2626" },
+    { name: "NVR Ping ไม่ได้", value: pingNvrFail, fill: "#EF4444" },
+    { name: "HDD มีปัญหา", value: hddFail, fill: "#F97316" },
+    { name: "แสดงภาพผิดปกติ", value: viewFail, fill: "#F59E0B" },
+    { name: "Login ไม่ได้", value: loginFail, fill: "#EAB308" },
+  ].filter((item) => item.value > 0);
 
   // District breakdown
   const districtData = nvrList.reduce((acc, nvr) => {
-    const existing = acc.find(item => item.district === nvr.district);
+    const existing = acc.find((item) => item.district === nvr.district);
     if (existing) {
       existing.total += 1;
       if (hasIssues(nvr)) {
@@ -68,10 +95,10 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
       });
     }
     return acc;
-  }, [] as Array<{ district: string; total: number; normal: number; problem: number; }>);
+  }, [] as Array<{ district: string; total: number; normal: number; problem: number }>);
 
   // Critical issues (multiple problems)
-  const criticalNVRs = nvrList.filter(nvr => {
+  const criticalNVRs = nvrList.filter((nvr) => {
     let issueCount = 0;
     if (!nvr.ping_onu) issueCount++;
     if (!nvr.ping_nvr) issueCount++;
@@ -81,11 +108,17 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
     return issueCount >= 2;
   });
 
+  useEffect(() => {
+    setCriticalPage(1);
+  }, [nvrList]);
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-2">Dashboard ภาพรวม CCTV NVR</h1>
-        <p className="text-gray-600">สถานะและการทำงานของระบบ CCTV NVR ทั้งหมดในกรุงเทพมหานคร</p>
+        <p className="text-gray-600">
+          สถานะและการทำงานของระบบ CCTV NVR ทั้งหมดในกรุงเทพมหานคร
+        </p>
       </div>
 
       {/* Summary Stats */}
@@ -107,13 +140,16 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <CheckCircle className="size-5 text-green-600" />
-              <CardTitle className="text-lg text-green-800">ทำงานปกติ</CardTitle>
+              <CardTitle className="text-lg text-green-800">
+                ทำงานปกติ
+              </CardTitle>
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-green-600">{normalNVR}</div>
             <p className="text-sm text-green-700">
-              {totalNVR > 0 ? ((normalNVR / totalNVR) * 100).toFixed(1) : 0}% ของทั้งหมด
+              {totalNVR > 0 ? ((normalNVR / totalNVR) * 100).toFixed(1) : 0}%
+              ของทั้งหมด
             </p>
           </CardContent>
         </Card>
@@ -139,7 +175,9 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-orange-600">{criticalNVRs.length}</div>
+            <div className="text-3xl font-bold text-orange-600">
+              {criticalNVRs.length}
+            </div>
             <p className="text-sm text-orange-700">มีปัญหามากกว่า 1 รายการ</p>
           </CardContent>
         </Card>
@@ -152,7 +190,8 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
             <div className="flex items-center gap-2">
               <AlertTriangle className="size-6 text-red-600" />
               <CardTitle className="text-red-900">
-                รายการวิกฤต - ต้องดำเนินการเร่งด่วน ({criticalNVRs.length} รายการ)
+                รายการวิกฤต - ต้องดำเนินการเร่งด่วน ({criticalNVRs.length}{" "}
+                รายการ)
               </CardTitle>
             </div>
             <CardDescription className="text-red-700">
@@ -160,37 +199,47 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div
+              // className="space-y-4 max-h-[520px] overflow-y-auto pr-3 rounded-xl">
+              className="space-y-4 max-h-[520px] overflow-y-auto pr-2 overlay-scrollbar">
               {criticalNVRs.map((nvr) => {
                 const issues = [];
-                if (!nvr.ping_onu) issues.push('ONU Ping');
-                if (!nvr.ping_nvr) issues.push('NVR Ping');
-                if (!nvr.hdd_status) issues.push('HDD');
-                if (!nvr.normal_view) issues.push('แสดงภาพ');
-                if (!nvr.check_login) issues.push('Login');
+                if (!nvr.ping_onu) issues.push("ONU Ping");
+                if (!nvr.ping_nvr) issues.push("NVR Ping");
+                if (!nvr.hdd_status) issues.push("HDD");
+                if (!nvr.normal_view) issues.push("แสดงภาพ");
+                if (!nvr.check_login) issues.push("Login");
 
                 return (
-                  <div 
+                  <div
                     key={nvr.id}
                     className="bg-white p-4 rounded-lg border border-red-200 shadow-sm"
                   >
-                    <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-bold text-red-900">{nvr.nvr}</span>
+                          <span className="font-bold text-red-900">
+                            {nvr.nvr}
+                          </span>
                           <Badge variant="destructive" className="text-xs">
                             {issues.length} ปัญหา
                           </Badge>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-700">
                           <MapPin className="size-4" />
-                          <span>{nvr.location} (เขต{nvr.district})</span>
+                          <span>
+                            {nvr.location} (เขต{nvr.district})
+                          </span>
                         </div>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2 mt-2">
                       {issues.map((issue, idx) => (
-                        <Badge key={idx} variant="outline" className="bg-red-100 text-red-800 border-red-200">
+                        <Badge
+                          key={idx}
+                          variant="outline"
+                          className="bg-red-100 text-red-800 border-red-200"
+                        >
                           <XCircle className="size-3 mr-1" />
                           {issue}
                         </Badge>
@@ -219,7 +268,7 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, value, percent }) => 
+                  label={({ name, value, percent }) =>
                     `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
                   }
                   outerRadius={80}
@@ -350,7 +399,9 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{loginFail}</div>
+            <div className="text-2xl font-bold text-yellow-600">
+              {loginFail}
+            </div>
             <p className="text-xs text-gray-600">ไม่ได้</p>
           </CardContent>
         </Card>

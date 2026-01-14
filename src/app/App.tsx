@@ -75,7 +75,7 @@ export default function App() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                ระบบตรวจสอบสถานะ CCTV NVR กรุงเทพมหานคร
+                ระบบตรวจสอบสถานะ CCTV NVR กรุงเทพมหานคร เหนือ
               </h1>
               <p className="text-sm text-gray-600">
                 Bangkok CCTV NVR Monitoring System
