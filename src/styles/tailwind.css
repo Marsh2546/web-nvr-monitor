@@ -31,3 +31,7 @@
   scrollbar-color: rgba(52, 50, 50, 0.35) transparent;
 }
 
+.recharts-default-legend .recharts-legend-icon {
+  display: none;
+}
+

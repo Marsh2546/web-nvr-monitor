@@ -66,7 +66,7 @@ export function AdminPage({ tickets, onUpdateTickets }: AdminPageProps) {
       return;
     }
 
-    const ticketNumber = `CCTV-2026-${String(tickets.length + 1).padStart(3, '0')}`;
+    const ticketNumber = `CCTV-2026-${Date.now()}`;
     const today = new Date().toISOString().split('T')[0];
     const now = new Date().toISOString();
 
