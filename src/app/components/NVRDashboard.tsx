@@ -103,16 +103,16 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
   // ✅ useMemo: Chart data
   const chartData = useMemo(() => {
     const statusData = [
-      { name: "ปกติ", value: stats.normalNVR, fill: "#22C55E" },
-      { name: "มีปัญหา", value: stats.problemNVR, fill: "#EF4444" },
+      { name: "ปกติ", value: stats.normalNVR, fill: "var(--chart-1)" },
+      { name: "มีปัญหา", value: stats.problemNVR, fill: "var(--destructive)" },
     ];
 
     const issueData = [
-      { name: "ONU Ping ไม่ได้", value: stats.pingOnuFail, fill: "#DC2626" },
-      { name: "NVR Ping ไม่ได้", value: stats.pingNvrFail, fill: "#EF4444" },
-      { name: "HDD มีปัญหา", value: stats.hddFail, fill: "#F97316" },
-      { name: "แสดงภาพผิดปกติ", value: stats.viewFail, fill: "#F59E0B" },
-      { name: "Login ไม่ได้", value: stats.loginFail, fill: "#EAB308" },
+      { name: "ONU Ping ไม่ได้", value: stats.pingOnuFail, fill: "#f43f5e" }, // rose-500
+      { name: "NVR Ping ไม่ได้", value: stats.pingNvrFail, fill: "#ef4444" }, // red-500
+      { name: "HDD มีปัญหา", value: stats.hddFail, fill: "#f97316" }, // orange-500
+      { name: "แสดงภาพผิดปกติ", value: stats.viewFail, fill: "#eab308" }, // yellow-500
+      { name: "Login ไม่ได้", value: stats.loginFail, fill: "#84cc16" }, // lime-500
     ].filter((item) => item.value > 0);
 
     const districtData = nvrWithIssues.reduce(
@@ -153,41 +153,41 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold mb-2">Dashboard ภาพรวม CCTV NVR</h1>
-        <p className="text-gray-600">
+        <h1 className="text-3xl font-bold mb-2 text-foreground">
+          Dashboard ภาพรวม CCTV NVR
+        </h1>
+        <p className="text-muted-foreground">
           สถานะและการทำงานของระบบ CCTV NVR ทั้งหมดในกรุงเทพมหานคร
         </p>
       </div>
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
+        <Card className="bg-card border-border shadow-sm">
+          <CardHeader className="pb-3 text-foreground">
             <div className="flex items-center gap-2">
-              <Server className="size-5 text-blue-600" />
+              <Server className="size-5 text-primary" />
               <CardTitle className="text-lg">NVR ทั้งหมด</CardTitle>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="text-foreground">
             <div className="text-3xl font-bold">{stats.totalNVR}</div>
-            <p className="text-sm text-gray-600">จุดติดตั้งทั้งหมด</p>
+            <p className="text-sm text-muted-foreground">จุดติดตั้งทั้งหมด</p>
           </CardContent>
         </Card>
 
-        <Card className="border-green-200 bg-green-50">
-          <CardHeader className="pb-3">
+        <Card className="border-green-500/20 bg-green-500/5 shadow-sm">
+          <CardHeader className="pb-3 text-green-500">
             <div className="flex items-center gap-2">
-              <CheckCircle className="size-5 text-green-600" />
-              <CardTitle className="text-lg text-green-800">
-                ทำงานปกติ
-              </CardTitle>
+              <CheckCircle className="size-5" />
+              <CardTitle className="text-lg">ทำงานปกติ</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">
+            <div className="text-3xl font-bold text-green-500">
               {stats.normalNVR}
             </div>
-            <p className="text-sm text-green-700">
+            <p className="text-sm text-green-600/80">
               {stats.totalNVR > 0
                 ? ((stats.normalNVR / stats.totalNVR) * 100).toFixed(1)
                 : 0}
@@ -196,40 +196,42 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader className="pb-3">
+        <Card className="border-red-500/20 bg-red-500/5 shadow-sm">
+          <CardHeader className="pb-3 text-red-500">
             <div className="flex items-center gap-2">
-              <XCircle className="size-5 text-red-600" />
-              <CardTitle className="text-lg text-red-800">มีปัญหา</CardTitle>
+              <XCircle className="size-5" />
+              <CardTitle className="text-lg">มีปัญหา</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-red-600">
+            <div className="text-3xl font-bold text-red-500">
               {stats.problemNVR}
             </div>
-            <p className="text-sm text-red-700">ต้องดำเนินการ</p>
+            <p className="text-sm text-red-600/80">ต้องดำเนินการ</p>
           </CardContent>
         </Card>
 
-        <Card className="border-orange-200 bg-orange-50">
-          <CardHeader className="pb-3">
+        <Card className="border-orange-500/20 bg-orange-500/5 shadow-sm">
+          <CardHeader className="pb-3 text-orange-500">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="size-5 text-orange-600" />
-              <CardTitle className="text-lg text-orange-800">วิกฤต</CardTitle>
+              <AlertTriangle className="size-5" />
+              <CardTitle className="text-lg">วิกฤต</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-orange-600">
+            <div className="text-3xl font-bold text-orange-500">
               {stats.criticalNVRs.length}
             </div>
-            <p className="text-sm text-orange-700">มีปัญหามากกว่า 1 รายการ</p>
+            <p className="text-sm text-orange-600/80">
+              มีปัญหามากกว่า 1 รายการ
+            </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Critical Alerts */}
       {stats.criticalNVRs.length > 0 && (
-        <Card className="border-red-500 border-2 bg-red-50">
+        <Card className="border-red-500 bg-red-500/5 shadow-lg">
           <CardHeader>
             <div className="flex items-center gap-2">
               <AlertTriangle className="size-6 text-red-600" />
@@ -238,7 +240,7 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
                 รายการ)
               </CardTitle>
             </div>
-            <CardDescription className="text-red-700">
+            <CardDescription className="text-red-500/80">
               NVR ที่มีปัญหาหลายรายการพร้อมกัน
             </CardDescription>
           </CardHeader>
@@ -259,7 +261,7 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
                           {nvr.issueCount} ปัญหา
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-700">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <MapPin className="size-4" />
                         <span>
                           {nvr.location} (เขต{nvr.district})
@@ -314,9 +316,10 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
                   </Pie>
                   <Tooltip
                     contentStyle={{
+                      backgroundColor: "var(--card)",
                       borderRadius: "8px",
-                      border: "none",
-                      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                      border: "1px solid var(--border)",
+                      color: "var(--foreground)",
                     }}
                   />
                   <Legend
@@ -327,10 +330,10 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-3xl font-bold text-gray-900">
+                <span className="text-3xl font-bold text-foreground">
                   {stats.totalNVR}
                 </span>
-                <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">
+                <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
                   Total
                 </span>
               </div>
@@ -341,8 +344,10 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
         {chartData.issueData.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>รายละเอียดปัญหา</CardTitle>
-              <CardDescription>ประเภทปัญหาที่พบ</CardDescription>
+              <CardTitle className="text-foreground">รายละเอียดปัญหา</CardTitle>
+              <CardDescription className="text-muted-foreground">
+                ประเภทปัญหาที่พบ
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -390,9 +395,10 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
                   />
                   <Tooltip
                     contentStyle={{
+                      backgroundColor: "var(--card)",
                       borderRadius: "8px",
-                      border: "none",
-                      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                      border: "1px solid var(--border)",
+                      color: "var(--foreground)",
                     }}
                   />
                 </PieChart>
@@ -405,21 +411,40 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
       {/* District Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>สถานะแยกตามเขต</CardTitle>
-          <CardDescription>จำนวน NVR และสถานะในแต่ละเขต</CardDescription>
+          <CardTitle className="text-foreground">สถานะแยกตามเขต</CardTitle>
+          <CardDescription className="text-muted-foreground">
+            จำนวน NVR และสถานะในแต่ละเขต
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={400}>
             <BarChart data={chartData.districtData}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               {/* @ts-expect-error: Recharts type definition issue */}
-              <XAxis dataKey="district" />
+              <XAxis dataKey="district" stroke="var(--muted-foreground)" />
               {/* @ts-expect-error: Recharts type definition issue */}
-              <YAxis />
-              <Tooltip />
+              <YAxis stroke="var(--muted-foreground)" />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "var(--card)",
+                  borderRadius: "8px",
+                  border: "1px solid var(--border)",
+                  color: "var(--foreground)",
+                }}
+              />
               <Legend />
-              <Bar dataKey="normal" name="ปกติ" fill="#22C55E" />
-              <Bar dataKey="problem" name="มีปัญหา" fill="#EF4444" />
+              <Bar
+                dataKey="normal"
+                name="ปกติ"
+                fill="var(--chart-1)"
+                radius={[4, 4, 0, 0]}
+              />
+              <Bar
+                dataKey="problem"
+                name="มีปัญหา"
+                fill="var(--destructive)"
+                radius={[4, 4, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -427,78 +452,78 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
 
       {/* Issue Breakdown by Type */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card className="border-red-200">
-          <CardHeader className="pb-3">
+        <Card className="bg-card border-border shadow-sm">
+          <CardHeader className="pb-3 text-foreground">
             <div className="flex items-center gap-2">
-              <Wifi className="size-4 text-red-600" />
+              <Wifi className="size-4 text-red-500" />
               <CardTitle className="text-sm">ONU Ping</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-2xl font-bold text-red-500">
               {stats.pingOnuFail}
             </div>
-            <p className="text-xs text-gray-600">ไม่ตอบสนอง</p>
+            <p className="text-xs text-muted-foreground">ไม่ตอบสนอง</p>
           </CardContent>
         </Card>
 
-        <Card className="border-red-200">
-          <CardHeader className="pb-3">
+        <Card className="bg-card border-border shadow-sm">
+          <CardHeader className="pb-3 text-foreground">
             <div className="flex items-center gap-2">
-              <Server className="size-4 text-red-600" />
+              <Server className="size-4 text-red-500" />
               <CardTitle className="text-sm">NVR Ping</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-2xl font-bold text-red-500">
               {stats.pingNvrFail}
             </div>
-            <p className="text-xs text-gray-600">ไม่ตอบสนอง</p>
+            <p className="text-xs text-muted-foreground">ไม่ตอบสนอง</p>
           </CardContent>
         </Card>
 
-        <Card className="border-orange-200">
-          <CardHeader className="pb-3">
+        <Card className="bg-card border-border shadow-sm">
+          <CardHeader className="pb-3 text-foreground">
             <div className="flex items-center gap-2">
-              <HardDrive className="size-4 text-orange-600" />
+              <HardDrive className="size-4 text-orange-500" />
               <CardTitle className="text-sm">HDD</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
+            <div className="text-2xl font-bold text-orange-500">
               {stats.hddFail}
             </div>
-            <p className="text-xs text-gray-600">มีปัญหา</p>
+            <p className="text-xs text-muted-foreground">มีปัญหา</p>
           </CardContent>
         </Card>
 
-        <Card className="border-yellow-200">
-          <CardHeader className="pb-3">
+        <Card className="bg-card border-border shadow-sm">
+          <CardHeader className="pb-3 text-foreground">
             <div className="flex items-center gap-2">
-              <Eye className="size-4 text-yellow-600" />
+              <Eye className="size-4 text-yellow-500" />
               <CardTitle className="text-sm">แสดงภาพ</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
+            <div className="text-2xl font-bold text-yellow-500">
               {stats.viewFail}
             </div>
-            <p className="text-xs text-gray-600">ผิดปกติ</p>
+            <p className="text-xs text-muted-foreground">ผิดปกติ</p>
           </CardContent>
         </Card>
 
-        <Card className="border-yellow-200">
-          <CardHeader className="pb-3">
+        <Card className="bg-card border-border shadow-sm">
+          <CardHeader className="pb-3 text-foreground">
             <div className="flex items-center gap-2">
-              <LogIn className="size-4 text-yellow-600" />
+              <LogIn className="size-4 text-yellow-500" />
               <CardTitle className="text-sm">Login</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
+            <div className="text-2xl font-bold text-yellow-500">
               {stats.loginFail}
             </div>
-            <p className="text-xs text-gray-600">ไม่ได้</p>
+            <p className="text-xs text-muted-foreground">ไม่ได้</p>
           </CardContent>
         </Card>
       </div>

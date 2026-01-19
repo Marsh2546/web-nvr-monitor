@@ -23,9 +23,11 @@ export default function App() {
   const [useGoogleSheets, setUseGoogleSheets] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+
   // Load data on initial mount
   useEffect(() => {
-    loadNVRData(); 
+    loadNVRData();
   }, []);
 
   // Auto-refresh every 5 minutes if using Google Sheets
@@ -78,16 +80,18 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div
+      className={`${theme} min-h-screen bg-background transition-colors duration-300`}
+    >
       {/* Navigation Bar */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+      <nav className="bg-card border-b border-border sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-foreground">
                 ระบบตรวจสอบสถานะ CCTV NVR กรุงเทพมหานคร เหนือ
               </h1>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Bangkok CCTV NVR Monitoring System
               </p>
             </div>
@@ -138,23 +142,26 @@ export default function App() {
               )} */}
 
               {lastUpdated && (
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-muted-foreground">
                   อัปเดตล่าสุด: {lastUpdated}
                 </span>
               )}
             </div>
 
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+                className="text-muted-foreground"
+              >
+                {theme === "light" ? "🌙 โหมดมืด" : "☀️ โหมดสว่าง"}
+              </Button>
               {useGoogleSheets && !error && (
-                <span className="text-sm text-green-600 font-medium">
+                <span className="text-sm text-green-500 font-medium">
                   ● เชื่อมต่อ Google Sheets
                 </span>
               )}
-              {/* {!useGoogleSheets && (
-                <span className="text-sm text-gray-600">
-                  ● ใช้ข้อมูลตัวอย่าง
-                </span>
-              )} */}
             </div>
           </div>
 
@@ -184,9 +191,9 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-12">
+      <footer className="bg-card border-t border-border mt-12">
         <div className="container mx-auto px-6 py-6">
-          <p className="text-center text-sm text-gray-600">
+          <p className="text-center text-sm text-muted-foreground">
             {useGoogleSheets
               ? `ข้อมูลจาก Google Sheets | ${nvrData.length} รายการ`
               : `ข้อมูลตัวอย่าง | ${nvrData.length} รายการ`}{" "}
