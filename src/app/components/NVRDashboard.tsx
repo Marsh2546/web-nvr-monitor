@@ -50,6 +50,7 @@ interface NVRWithIssues extends NVRStatus {
 
 export function NVRDashboard({ nvrList }: NVRDashboardProps) {
   const [criticalPage, setCriticalPage] = useState(1);
+  const [issueChartReady, setIssueChartReady] = useState(false);
   const criticalPerPage = 5;
 
   // ✅ useMemo: คำนวณ issues ครั้งเดียว แทนที่จะคำนวณทุกครั้งที่ render
@@ -70,7 +71,7 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
           issues: issues,
         };
       }),
-    [nvrList]
+    [nvrList],
   );
 
   // ✅ useMemo: คำนวณ statistics
@@ -114,25 +115,33 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
       { name: "Login ไม่ได้", value: stats.loginFail, fill: "#EAB308" },
     ].filter((item) => item.value > 0);
 
-    const districtData = nvrWithIssues.reduce((acc, nvr) => {
-      const existing = acc.find((item) => item.district === nvr.district);
-      if (existing) {
-        existing.total += 1;
-        if (nvr.hasIssues) {
-          existing.problem += 1;
+    const districtData = nvrWithIssues.reduce(
+      (acc, nvr) => {
+        const existing = acc.find((item) => item.district === nvr.district);
+        if (existing) {
+          existing.total += 1;
+          if (nvr.hasIssues) {
+            existing.problem += 1;
+          } else {
+            existing.normal += 1;
+          }
         } else {
-          existing.normal += 1;
+          acc.push({
+            district: nvr.district,
+            total: 1,
+            normal: nvr.hasIssues ? 0 : 1,
+            problem: nvr.hasIssues ? 1 : 0,
+          });
         }
-      } else {
-        acc.push({
-          district: nvr.district,
-          total: 1,
-          normal: nvr.hasIssues ? 0 : 1,
-          problem: nvr.hasIssues ? 1 : 0,
-        });
-      }
-      return acc;
-    }, [] as Array<{ district: string; total: number; normal: number; problem: number }>);
+        return acc;
+      },
+      [] as Array<{
+        district: string;
+        total: number;
+        normal: number;
+        problem: number;
+      }>,
+    );
 
     return { statusData, issueData, districtData };
   }, [stats, nvrWithIssues]);
@@ -285,27 +294,47 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
             <CardDescription>แสดงสถานะทั่วไปของระบบ</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={chartData.statusData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value, percent }) =>
-                    `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
-                  }
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {chartData.statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="relative h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData.statusData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                    cornerRadius={5}
+                    stroke="none"
+                  >
+                    {chartData.statusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: "8px",
+                      border: "none",
+                      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                    }}
+                  />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={36}
+                    iconType="circle"
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-3xl font-bold text-gray-900">
+                  {stats.totalNVR}
+                </span>
+                <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">
+                  Total
+                </span>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -322,11 +351,32 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
                     data={chartData.issueData}
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
-                    label={({ value }) => `${value}`}
+                    innerRadius={60}
                     outerRadius={80}
-                    fill="#8884d8"
+                    paddingAngle={2}
                     dataKey="value"
+                    cornerRadius={4}
+                    stroke="none"
+                    onAnimationEnd={() => setIssueChartReady(true)}
+                    label={({ x, y, value, payload }) => (
+                      <text
+                        x={x}
+                        y={y}
+                        fill={payload.fill}
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        className="text-xs font-bold"
+                        style={{
+                          fontSize: "16px",
+                          opacity: issueChartReady ? 1 : 0,
+                          transition: "opacity 0.5s ease-in-out",
+                          textShadow: "0 1px 2px rgba(255,255,255,0.8)",
+                        }}
+                      >
+                        {value}
+                      </text>
+                    )}
+                    labelLine={false}
                   >
                     {chartData.issueData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -336,9 +386,15 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
                     layout="vertical"
                     align="right"
                     verticalAlign="middle"
-                    iconSize={0}
+                    iconType="circle"
                   />
-                  <Tooltip />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: "8px",
+                      border: "none",
+                      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -356,7 +412,9 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
           <ResponsiveContainer width="100%" height={400}>
             <BarChart data={chartData.districtData}>
               <CartesianGrid strokeDasharray="3 3" />
+              {/* @ts-expect-error: Recharts type definition issue */}
               <XAxis dataKey="district" />
+              {/* @ts-expect-error: Recharts type definition issue */}
               <YAxis />
               <Tooltip />
               <Legend />
