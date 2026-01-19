@@ -367,7 +367,7 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
                         dominantBaseline="central"
                         className="text-xs font-bold"
                         style={{
-                          fontSize: "16px",
+                          fontSize: "15px",
                           opacity: issueChartReady ? 1 : 0,
                           transition: "opacity 0.5s ease-in-out",
                           textShadow: "0 1px 2px rgba(255,255,255,0.8)",
