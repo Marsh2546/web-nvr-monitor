@@ -30,16 +30,14 @@ export default function App() {
     loadNVRData();
   }, []);
 
-  // Auto-refresh every 5 minutes if using Google Sheets
-  // useEffect(() => {
-  //   if (useGoogleSheets) {
-  //     const interval = setInterval(() => {
-  //       loadNVRData(true); // Silent refresh
-  //     }, 5 * 60 * 1000); // 5 minutes
+  // Auto-refresh every 1 minute for real-time feel
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadNVRData(true); // Silent refresh (no toast notifications)
+    }, 60 * 1000); // 1 minute
 
-  //     return () => clearInterval(interval);
-  //   }
-  // }, [useGoogleSheets]);
+    return () => clearInterval(interval);
+  }, []);
 
   const loadNVRData = async (silent = false) => {
     if (!silent) {
@@ -87,13 +85,20 @@ export default function App() {
       <nav className="bg-card border-b border-border sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                ระบบตรวจสอบสถานะ CCTV NVR กรุงเทพมหานคร เหนือ
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Bangkok CCTV NVR Monitoring System
-              </p>
+            <div className="flex items-center gap-4">
+              <img
+                src="https://multiinno.com/wp-content/uploads/2025/06/cropped-logo-e1748947128387.webp"
+                alt="Logo"
+                className="h-12 w-auto object-contain"
+              />
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">
+                  ระบบตรวจสอบสถานะ CCTV NVR กรุงเทพมหานคร เหนือ
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Bangkok CCTV NVR Monitoring System
+                </p>
+              </div>
             </div>
             <div className="flex gap-2">
               <Button
@@ -118,28 +123,12 @@ export default function App() {
           {/* Data Source Controls */}
           <div className="mt-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button
-                onClick={() => loadNVRData()}
-                disabled={isLoading}
-                variant="default"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <RefreshCw
-                  className={`size-4 ${isLoading ? "animate-spin" : ""}`}
-                />
-                {isLoading ? "กำลังโหลด..." : "โหลดจาก Google Sheets"}
-              </Button>
-
-              {/* {useGoogleSheets && (
-                <Button
-                  onClick={switchToMockData}
-                  variant="outline"
-                  size="sm"
-                >
-                  ใช้ข้อมูลตัวอย่าง
-                </Button>
-              )} */}
+              {isLoading && !lastUpdated ? (
+                <div className="flex items-center gap-2 text-sm text-primary animate-pulse">
+                  <RefreshCw className="size-4 animate-spin" />
+                  <span>กำลังอัปเดตข้อมูลอัตโนมัติ...</span>
+                </div>
+              ) : null}
 
               {lastUpdated && (
                 <span className="text-sm text-muted-foreground">
