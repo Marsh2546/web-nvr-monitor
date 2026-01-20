@@ -321,6 +321,8 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
                       border: "1px solid var(--border)",
                       color: "var(--foreground)",
                     }}
+                    labelStyle={{ color: "var(--foreground)" }}
+                    itemStyle={{ color: "var(--foreground)" }}
                   />
                   <Legend
                     verticalAlign="bottom"
@@ -375,7 +377,7 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
                           fontSize: "15px",
                           opacity: issueChartReady ? 1 : 0,
                           transition: "opacity 0.5s ease-in-out",
-                          textShadow: "0 1px 2px rgba(255,255,255,0.8)",
+                          // textShadow: "0 1px 2px rgba(255,255,255,0.8)",
                         }}
                       >
                         {value}
@@ -400,6 +402,8 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
                       border: "1px solid var(--border)",
                       color: "var(--foreground)",
                     }}
+                    labelStyle={{ color: "var(--foreground)" }}
+                    itemStyle={{ color: "var(--foreground)" }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -431,6 +435,8 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
                   border: "1px solid var(--border)",
                   color: "var(--foreground)",
                 }}
+                labelStyle={{ color: "var(--foreground)" }}
+                itemStyle={{ color: "var(--foreground)" }}
               />
               <Legend />
               <Bar

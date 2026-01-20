@@ -1,58 +1,79 @@
-import { RepairTicket } from '@/app/types/repair';
-import { StatCard } from '@/app/components/StatCard';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Badge } from '@/app/components/ui/badge';
-import { Button } from '@/app/components/ui/button';
-import { Label } from '@/app/components/ui/label';
-import { Input } from '@/app/components/ui/input';
-import { 
-  ClipboardList, 
-  Clock, 
-  Wrench, 
-  CheckCircle, 
+import { RepairTicket } from "@/app/types/repair";
+import { StatCard } from "@/app/components/StatCard";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/app/components/ui/card";
+import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
+import { Label } from "@/app/components/ui/label";
+import { Input } from "@/app/components/ui/input";
+import {
+  ClipboardList,
+  Clock,
+  Wrench,
+  CheckCircle,
   AlertTriangle,
   MapPin,
   Calendar,
   AlertCircle,
-  CalendarRange
-} from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { useState } from 'react';
+  CalendarRange,
+} from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+import { useState } from "react";
 
 const COLORS = {
-  pending: '#EAB308',
-  'in-progress': '#3B82F6',
-  completed: '#22C55E',
+  pending: "#EAB308",
+  "in-progress": "#3B82F6",
+  completed: "#22C55E",
 };
 
-type DateRange = '7days' | '30days' | '90days' | 'all' | 'custom';
+type DateRange = "7days" | "30days" | "90days" | "all" | "custom";
 
 export function DashboardPage({ tickets }: { tickets: RepairTicket[] }) {
-  const [dateRange, setDateRange] = useState<DateRange>('all');
-  const [customStartDate, setCustomStartDate] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
+  const [dateRange, setDateRange] = useState<DateRange>("all");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
 
   // Filter tickets based on date range
   const getFilteredTickets = () => {
-    const today = new Date('2026-01-13'); // Current date in the system
-    
-    if (dateRange === 'all') {
+    const today = new Date("2026-01-13"); // Current date in the system
+
+    if (dateRange === "all") {
       return tickets;
     }
 
-    if (dateRange === 'custom') {
+    if (dateRange === "custom") {
       if (!customStartDate || !customEndDate) return tickets;
-      return tickets.filter(ticket => {
+      return tickets.filter((ticket) => {
         const reportDate = new Date(ticket.reportedDate);
-        return reportDate >= new Date(customStartDate) && reportDate <= new Date(customEndDate);
+        return (
+          reportDate >= new Date(customStartDate) &&
+          reportDate <= new Date(customEndDate)
+        );
       });
     }
 
-    const days = dateRange === '7days' ? 7 : dateRange === '30days' ? 30 : 90;
+    const days = dateRange === "7days" ? 7 : dateRange === "30days" ? 30 : 90;
     const startDate = new Date(today);
     startDate.setDate(startDate.getDate() - days);
 
-    return tickets.filter(ticket => {
+    return tickets.filter((ticket) => {
       const reportDate = new Date(ticket.reportedDate);
       return reportDate >= startDate && reportDate <= today;
     });
@@ -60,64 +81,95 @@ export function DashboardPage({ tickets }: { tickets: RepairTicket[] }) {
 
   const filteredTickets = getFilteredTickets();
   const totalTickets = filteredTickets.length;
-  const pendingTickets = filteredTickets.filter(t => t.status === 'pending');
-  const inProgressTickets = filteredTickets.filter(t => t.status === 'in-progress');
-  const completedTickets = filteredTickets.filter(t => t.status === 'completed');
+  const pendingTickets = filteredTickets.filter((t) => t.status === "pending");
+  const inProgressTickets = filteredTickets.filter(
+    (t) => t.status === "in-progress",
+  );
+  const completedTickets = filteredTickets.filter(
+    (t) => t.status === "completed",
+  );
 
-  const tomorrow = '2026-01-14';
+  const tomorrow = "2026-01-14";
   const tomorrowTickets = tickets.filter(
-    t => t.scheduledDate === tomorrow && t.status !== 'completed'
+    (t) => t.scheduledDate === tomorrow && t.status !== "completed",
   );
 
   // Data for charts
   const statusData = [
-    { name: 'รอดำเนินการ', value: pendingTickets.length, fill: COLORS.pending },
-    { name: 'กำลังซ่อม', value: inProgressTickets.length, fill: COLORS['in-progress'] },
-    { name: 'เสร็จสิ้น', value: completedTickets.length, fill: COLORS.completed },
+    { name: "รอดำเนินการ", value: pendingTickets.length, fill: COLORS.pending },
+    {
+      name: "กำลังซ่อม",
+      value: inProgressTickets.length,
+      fill: COLORS["in-progress"],
+    },
+    {
+      name: "เสร็จสิ้น",
+      value: completedTickets.length,
+      fill: COLORS.completed,
+    },
   ];
 
-  const districtData = filteredTickets.reduce((acc, ticket) => {
-    const existing = acc.find(item => item.district === ticket.district);
-    if (existing) {
-      existing.total += 1;
-      if (ticket.status === 'pending') existing.pending += 1;
-      if (ticket.status === 'in-progress') existing.inProgress += 1;
-      if (ticket.status === 'completed') existing.completed += 1;
-    } else {
-      acc.push({
-        district: ticket.district,
-        total: 1,
-        pending: ticket.status === 'pending' ? 1 : 0,
-        inProgress: ticket.status === 'in-progress' ? 1 : 0,
-        completed: ticket.status === 'completed' ? 1 : 0,
-      });
-    }
-    return acc;
-  }, [] as Array<{ district: string; total: number; pending: number; inProgress: number; completed: number; }>);
+  const districtData = filteredTickets.reduce(
+    (acc, ticket) => {
+      const existing = acc.find((item) => item.district === ticket.district);
+      if (existing) {
+        existing.total += 1;
+        if (ticket.status === "pending") existing.pending += 1;
+        if (ticket.status === "in-progress") existing.inProgress += 1;
+        if (ticket.status === "completed") existing.completed += 1;
+      } else {
+        acc.push({
+          district: ticket.district,
+          total: 1,
+          pending: ticket.status === "pending" ? 1 : 0,
+          inProgress: ticket.status === "in-progress" ? 1 : 0,
+          completed: ticket.status === "completed" ? 1 : 0,
+        });
+      }
+      return acc;
+    },
+    [] as Array<{
+      district: string;
+      total: number;
+      pending: number;
+      inProgress: number;
+      completed: number;
+    }>,
+  );
 
   const priorityData = [
-    { 
-      name: 'เร่งด่วนมาก', 
-      value: filteredTickets.filter(t => t.priority === 'high' && t.status !== 'completed').length,
-      fill: '#EF4444'
+    {
+      name: "เร่งด่วนมาก",
+      value: filteredTickets.filter(
+        (t) => t.priority === "high" && t.status !== "completed",
+      ).length,
+      fill: "#EF4444",
     },
-    { 
-      name: 'ปานกลาง', 
-      value: filteredTickets.filter(t => t.priority === 'medium' && t.status !== 'completed').length,
-      fill: '#F97316'
+    {
+      name: "ปานกลาง",
+      value: filteredTickets.filter(
+        (t) => t.priority === "medium" && t.status !== "completed",
+      ).length,
+      fill: "#F97316",
     },
-    { 
-      name: 'ไม่เร่งด่วน', 
-      value: filteredTickets.filter(t => t.priority === 'low' && t.status !== 'completed').length,
-      fill: '#9CA3AF'
+    {
+      name: "ไม่เร่งด่วน",
+      value: filteredTickets.filter(
+        (t) => t.priority === "low" && t.status !== "completed",
+      ).length,
+      fill: "#9CA3AF",
     },
   ];
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold mb-2">Dashboard ภาพรวมการซ่อม CCTV</h1>
-        <p className="text-gray-600">ภาพรวมการแจ้งซ่อมและสถานะการดำเนินงานทั้งหมด</p>
+        <h1 className="text-3xl font-bold mb-2">
+          Dashboard ภาพรวมการซ่อม CCTV
+        </h1>
+        <p className="text-gray-600">
+          ภาพรวมการแจ้งซ่อมและสถานะการดำเนินงานทั้งหมด
+        </p>
       </div>
 
       {/* Stats Cards */}
@@ -169,15 +221,17 @@ export function DashboardPage({ tickets }: { tickets: RepairTicket[] }) {
           <CardContent>
             <div className="space-y-3">
               {tomorrowTickets.map((ticket) => (
-                <div 
+                <div
                   key={ticket.id}
                   className="bg-white p-4 rounded-lg border border-red-200 shadow-sm"
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-red-900">{ticket.ticketNumber}</span>
-                        {ticket.priority === 'high' && (
+                        <span className="font-bold text-red-900">
+                          {ticket.ticketNumber}
+                        </span>
+                        {ticket.priority === "high" && (
                           <Badge variant="destructive" className="text-xs">
                             <AlertTriangle className="size-3 mr-1" />
                             เร่งด่วนมาก
@@ -186,14 +240,18 @@ export function DashboardPage({ tickets }: { tickets: RepairTicket[] }) {
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-700">
                         <MapPin className="size-4" />
-                        <span>{ticket.location} ({ticket.district})</span>
+                        <span>
+                          {ticket.location} ({ticket.district})
+                        </span>
                       </div>
                     </div>
-                    <Badge 
-                      variant="outline" 
+                    <Badge
+                      variant="outline"
                       className="bg-yellow-100 text-yellow-800 border-yellow-200"
                     >
-                      {ticket.status === 'pending' ? 'รอดำเนินการ' : 'กำลังซ่อม'}
+                      {ticket.status === "pending"
+                        ? "รอดำเนินการ"
+                        : "กำลังซ่อม"}
                     </Badge>
                   </div>
                   <p className="text-sm text-gray-700 mt-2">
@@ -216,37 +274,37 @@ export function DashboardPage({ tickets }: { tickets: RepairTicket[] }) {
         <CardContent>
           <div className="flex items-center gap-4">
             <Button
-              variant={dateRange === '7days' ? 'default' : 'outline'}
-              onClick={() => setDateRange('7days')}
+              variant={dateRange === "7days" ? "default" : "outline"}
+              onClick={() => setDateRange("7days")}
             >
               7 วัน
             </Button>
             <Button
-              variant={dateRange === '30days' ? 'default' : 'outline'}
-              onClick={() => setDateRange('30days')}
+              variant={dateRange === "30days" ? "default" : "outline"}
+              onClick={() => setDateRange("30days")}
             >
               30 วัน
             </Button>
             <Button
-              variant={dateRange === '90days' ? 'default' : 'outline'}
-              onClick={() => setDateRange('90days')}
+              variant={dateRange === "90days" ? "default" : "outline"}
+              onClick={() => setDateRange("90days")}
             >
               90 วัน
             </Button>
             <Button
-              variant={dateRange === 'all' ? 'default' : 'outline'}
-              onClick={() => setDateRange('all')}
+              variant={dateRange === "all" ? "default" : "outline"}
+              onClick={() => setDateRange("all")}
             >
               ทั้งหมด
             </Button>
             <Button
-              variant={dateRange === 'custom' ? 'default' : 'outline'}
-              onClick={() => setDateRange('custom')}
+              variant={dateRange === "custom" ? "default" : "outline"}
+              onClick={() => setDateRange("custom")}
             >
               กำหนดเอง
             </Button>
           </div>
-          {dateRange === 'custom' && (
+          {dateRange === "custom" && (
             <div className="mt-4">
               <Label>เริ่มต้น:</Label>
               <Input
@@ -280,7 +338,7 @@ export function DashboardPage({ tickets }: { tickets: RepairTicket[] }) {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, value, percent }) => 
+                  label={({ name, value, percent }) =>
                     `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
                   }
                   outerRadius={80}
@@ -300,7 +358,9 @@ export function DashboardPage({ tickets }: { tickets: RepairTicket[] }) {
         <Card>
           <CardHeader>
             <CardTitle>ความเร่งด่วน (ที่ยังไม่เสร็จ)</CardTitle>
-            <CardDescription>แสดงระดับความเร่งด่วนของรายการที่ค้างอยู่</CardDescription>
+            <CardDescription>
+              แสดงระดับความเร่งด่วนของรายการที่ค้างอยู่
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -310,7 +370,7 @@ export function DashboardPage({ tickets }: { tickets: RepairTicket[] }) {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, value, percent }) => 
+                  label={({ name, value, percent }) =>
                     `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
                   }
                   outerRadius={80}
@@ -342,8 +402,16 @@ export function DashboardPage({ tickets }: { tickets: RepairTicket[] }) {
               <Tooltip />
               <Legend />
               <Bar dataKey="pending" name="รอดำเนินการ" fill={COLORS.pending} />
-              <Bar dataKey="inProgress" name="กำลังซ่อม" fill={COLORS['in-progress']} />
-              <Bar dataKey="completed" name="เสร็จสิ้น" fill={COLORS.completed} />
+              <Bar
+                dataKey="inProgress"
+                name="กำลังซ่อม"
+                fill={COLORS["in-progress"]}
+              />
+              <Bar
+                dataKey="completed"
+                name="เสร็จสิ้น"
+                fill={COLORS.completed}
+              />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -353,14 +421,16 @@ export function DashboardPage({ tickets }: { tickets: RepairTicket[] }) {
       <Card>
         <CardHeader>
           <CardTitle>สรุปตามเขต</CardTitle>
-          <CardDescription>รายละเอียดจำนวนรายการแจ้งซ่อมในแต่ละเขต</CardDescription>
+          <CardDescription>
+            รายละเอียดจำนวนรายการแจ้งซ่อมในแต่ละเขต
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {districtData
               .sort((a, b) => b.total - a.total)
               .map((district) => (
-                <div 
+                <div
                   key={district.district}
                   className="border rounded-lg p-4 space-y-2"
                 >
