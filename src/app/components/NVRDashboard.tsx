@@ -222,7 +222,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 onClick={() => onPageChange("dashboard")}
                 className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-md transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)]"
               >
-                <div className="size-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                {/* <div className="size-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> */}
                 Dashboard
               </Button>
               <Button
@@ -231,7 +231,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 onClick={() => onPageChange("status")}
                 className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/30 border-slate-700/50 text-slate-300 hover:text-white hover:bg-slate-700/50 text-xs font-semibold rounded-md transition-all"
               >
-                <div className="size-1.5 rounded-full bg-slate-500" />
+                <div className="size-1.5 rounded-full bg-white/60 animate-pulse" />
                 Status NVR
               </Button>
             </div>
@@ -436,7 +436,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                       cy="50%"
                       innerRadius={70}
                       outerRadius={95}
-                      paddingAngle={0}
+                      paddingAngle={3}
                       dataKey="value"
                       stroke="none"
                     >

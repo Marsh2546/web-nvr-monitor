@@ -637,7 +637,6 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 size="sm"
                 className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-md transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)]"
               >
-                <div className="size-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 Status NVR
               </Button>
             </div>
