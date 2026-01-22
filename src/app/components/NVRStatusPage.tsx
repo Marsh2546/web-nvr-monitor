@@ -9,6 +9,7 @@ import {
 } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Input } from "@/app/components/ui/input";
+import { cn } from "@/app/components/ui/utils";
 import {
   Select,
   SelectContent,
@@ -26,6 +27,7 @@ import { Button } from "@/app/components/ui/button";
 import {
   Search,
   AlertCircle,
+  AlertTriangle,
   CheckCircle,
   XCircle,
   Server,
@@ -41,13 +43,15 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  LayoutDashboard,
 } from "lucide-react";
 
 interface NVRStatusPageProps {
   nvrList: NVRStatus[];
+  onPageChange: (page: "dashboard" | "status") => void;
 }
 
-export function NVRStatusPage({ nvrList }: NVRStatusPageProps) {
+export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState<string>("all");
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -105,6 +109,14 @@ export function NVRStatusPage({ nvrList }: NVRStatusPageProps) {
 
   const normalNVRs = filteredNVRList.filter((nvr) => !hasIssues(nvr));
   const problemNVRs = filteredNVRList.filter((nvr) => hasIssues(nvr));
+
+  // Calculate summary stats for the cards
+  const summaryStats = {
+    total: nvrList.length,
+    healthy: nvrList.filter((nvr) => !hasIssues(nvr)).length,
+    attention: nvrList.filter((nvr) => hasIssues(nvr)).length,
+    critical: nvrList.filter((nvr) => getIssueCount(nvr) >= 2).length,
+  };
 
   // Pagination calculations
   const getPaginatedItems = (items: NVRStatus[]) => {
@@ -264,7 +276,12 @@ export function NVRStatusPage({ nvrList }: NVRStatusPageProps) {
     return (
       <div
         key={nvr.id}
-        className={`border rounded-lg ${isNormal ? "border-border bg-card" : "border-red-500/30 bg-red-500/5"}`}
+        className={cn(
+          "border rounded-xl transition-all duration-300 overflow-hidden",
+          isNormal
+            ? "border-slate-800 bg-slate-900/40 hover:bg-slate-900/60"
+            : "border-red-500/30 bg-red-500/5 hover:bg-red-500/10 shadow-[0_0_15px_rgba(239,68,68,0.1)]",
+        )}
       >
         {/* Main Row - Compact */}
         <div
@@ -354,123 +371,207 @@ export function NVRStatusPage({ nvrList }: NVRStatusPageProps) {
             </div>
 
             {/* Cameras & Status - 3 cols */}
-            <div className="col-span-3 flex items-center justify-end gap-3">
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <Camera className="size-4" />
-                <span>{nvr.camera_count}</span>
+            <div className="col-span-3 flex items-center justify-end gap-4">
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-800/40 rounded-md border border-slate-700/30 text-xs text-slate-400">
+                <Camera className="size-3.5" />
+                <span className="font-bold text-slate-300">
+                  {nvr.camera_count}
+                </span>
               </div>
               {!isNormal && (
-                <Badge variant="destructive" className="text-xs">
-                  {issues} ปัญหา
+                <Badge
+                  variant="destructive"
+                  className="text-[10px] bg-red-500/10 text-red-400 border-red-500/20 font-bold px-2 py-0 h-6"
+                >
+                  {issues} ISSUES
                 </Badge>
               )}
               {isNormal && (
-                <Badge className="bg-green-600 text-xs text-white">ปกติ</Badge>
+                <Badge className="bg-green-500/10 text-green-400 border-green-500/20 text-[10px] font-bold px-2 py-0 h-6">
+                  HEALTHY
+                </Badge>
               )}
             </div>
           </div>
         </div>
 
-        {/* Expanded Details */}
+        {/* Expanded Details - Premium Redesign */}
         {isExpanded && (
-          <div className="border-t border-border bg-muted/20 p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Network Details */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-muted-foreground mb-2">
-                  เครือข่าย
-                </h4>
+          <div className="border-t border-slate-800/60 bg-slate-900/60 backdrop-blur-sm p-6 animate-in slide-in-from-top-1 duration-200">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Identity & Discovery */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="size-6 rounded-md bg-blue-500/20 flex items-center justify-center">
+                    <Wifi className="size-3.5 text-blue-400" />
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    Network Configuration
+                  </h4>
+                </div>
+
                 <div
-                  className={`p-2 rounded border text-sm ${nvr.ping_onu ? "bg-green-500/5 border-green-500/20" : "bg-red-500/10 border-red-500/30"}`}
+                  className={cn(
+                    "p-3 rounded-xl border flex flex-col gap-2 transition-all",
+                    nvr.ping_onu
+                      ? "bg-slate-950/40 border-slate-800"
+                      : "bg-red-500/5 border-red-500/20 shadow-[inset_0_0_10px_rgba(239,68,68,0.05)]",
+                  )}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Wifi
-                        className={`size-4 ${nvr.ping_onu ? "text-green-500" : "text-red-500"}`}
-                      />
-                      <span className="font-medium text-foreground">
-                        ONU Ping
-                      </span>
-                    </div>
+                    <span className="text-xs font-bold text-slate-300">
+                      ONU GATEWAY
+                    </span>
                     <StatusIcon status={nvr.ping_onu} />
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1 ml-6">
-                    {nvr.onu_ip}
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {nvr.onu_ip || "0.0.0.0"}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="text-[8px] h-4 bg-slate-900 border-slate-700 text-slate-400 px-1"
+                    >
+                      STATIC
+                    </Badge>
                   </div>
                 </div>
+
                 <div
-                  className={`p-2 rounded border text-sm ${nvr.ping_nvr ? "bg-green-500/5 border-green-500/20" : "bg-red-500/10 border-red-500/30"}`}
+                  className={cn(
+                    "p-3 rounded-xl border flex flex-col gap-2 transition-all",
+                    nvr.ping_nvr
+                      ? "bg-slate-950/40 border-slate-800"
+                      : "bg-red-500/5 border-red-500/20 shadow-[inset_0_0_10px_rgba(239,68,68,0.05)]",
+                  )}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Server
-                        className={`size-4 ${nvr.ping_nvr ? "text-green-500" : "text-red-500"}`}
-                      />
-                      <span className="font-medium text-foreground">
-                        NVR Ping
-                      </span>
-                    </div>
+                    <span className="text-xs font-bold text-slate-300">
+                      NVR TERMINAL
+                    </span>
                     <StatusIcon status={nvr.ping_nvr} />
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1 ml-6">
-                    {nvr.nvr_ip}
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {nvr.nvr_ip || "0.0.0.0"}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="text-[8px] h-4 bg-slate-900 border-slate-700 text-slate-400 px-1"
+                    >
+                      HOST
+                    </Badge>
                   </div>
                 </div>
               </div>
 
-              {/* System Details */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-muted-foreground mb-2">
-                  ระบบ
-                </h4>
-                <div
-                  className={`p-2 rounded border text-sm ${nvr.hdd_status ? "bg-green-500/5 border-green-500/20" : "bg-red-500/10 border-red-500/30"}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <HardDrive
-                        className={`size-4 ${nvr.hdd_status ? "text-green-500" : "text-red-500"}`}
-                      />
-                      <span className="font-medium text-foreground">
-                        HDD Status
+              {/* System Performance */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="size-6 rounded-md bg-purple-500/20 flex items-center justify-center">
+                    <HardDrive className="size-3.5 text-purple-400" />
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    Storage & Logic
+                  </h4>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  <div
+                    className={cn(
+                      "p-3 rounded-xl border flex items-center justify-between transition-all",
+                      nvr.hdd_status
+                        ? "bg-slate-950/40 border-slate-800"
+                        : "bg-red-500/5 border-red-500/20",
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "size-2 rounded-full",
+                          nvr.hdd_status ? "bg-green-500" : "bg-red-500",
+                        )}
+                      ></div>
+                      <span className="text-xs font-bold text-slate-300">
+                        HDD DRIVE STATUS
                       </span>
                     </div>
-                    <StatusIcon status={nvr.hdd_status} />
+                    <HardDrive
+                      className={cn(
+                        "size-4",
+                        nvr.hdd_status ? "text-slate-500" : "text-red-400",
+                      )}
+                    />
                   </div>
-                </div>
-                <div
-                  className={`p-2 rounded border text-sm ${nvr.normal_view ? "bg-green-500/5 border-green-500/20" : "bg-red-500/10 border-red-500/30"}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Eye
-                        className={`size-4 ${nvr.normal_view ? "text-green-500" : "text-red-500"}`}
-                      />
-                      <span className="font-medium text-foreground">
-                        แสดงภาพ
+
+                  <div
+                    className={cn(
+                      "p-3 rounded-xl border flex items-center justify-between transition-all",
+                      nvr.check_login
+                        ? "bg-slate-950/40 border-slate-800"
+                        : "bg-red-500/5 border-red-500/20",
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "size-2 rounded-full",
+                          nvr.check_login ? "bg-green-500" : "bg-red-500",
+                        )}
+                      ></div>
+                      <span className="text-xs font-bold text-slate-300">
+                        PROTOCOL LOGIN
                       </span>
                     </div>
-                    <StatusIcon status={nvr.normal_view} />
+                    <LogIn
+                      className={cn(
+                        "size-4",
+                        nvr.check_login ? "text-slate-500" : "text-red-400",
+                      )}
+                    />
                   </div>
                 </div>
+              </div>
+
+              {/* Visual Health */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="size-6 rounded-md bg-green-500/20 flex items-center justify-center">
+                    <Eye className="size-3.5 text-green-400" />
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    Image Integrity
+                  </h4>
+                </div>
+
                 <div
-                  className={`p-2 rounded border text-sm ${nvr.check_login ? "bg-green-500/5 border-green-500/20" : "bg-red-500/10 border-red-500/30"}`}
+                  className={cn(
+                    "p-4 rounded-xl border flex flex-col gap-4 transition-all h-full max-h-[140px] justify-between",
+                    nvr.normal_view
+                      ? "bg-slate-950/40 border-slate-800"
+                      : "bg-red-500/5 border-red-500/20",
+                  )}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <LogIn
-                        className={`size-4 ${nvr.check_login ? "text-green-500" : "text-red-500"}`}
-                      />
-                      <span className="font-medium text-foreground">
-                        เข้าสู่ระบบ
-                      </span>
-                    </div>
-                    <StatusIcon status={nvr.check_login} />
+                    <span className="text-xs font-bold text-slate-300 leading-tight">
+                      ACTIVE CHANNEL VIEWING
+                    </span>
+                    <Badge
+                      className={cn(
+                        "text-[10px] font-bold px-2 py-0",
+                        nvr.normal_view
+                          ? "bg-green-500/10 text-green-400 border-green-500/20"
+                          : "bg-red-500/10 text-red-400 border-red-500/20",
+                      )}
+                    >
+                      {nvr.normal_view ? "NOMINAL" : "CORRUPT"}
+                    </Badge>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-3 pt-2 border-t border-border">
-                  <Clock className="size-3" />
-                  <span>อัปเดต: {nvr.date_updated}</span>
+
+                  <div className="flex items-center gap-2 text-[10px] text-slate-500 border-t border-slate-800/50 pt-2">
+                    <Clock className="size-3" />
+                    <span>LAST TELEMETRY: {nvr.date_updated || "N/A"}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -481,171 +582,287 @@ export function NVRStatusPage({ nvrList }: NVRStatusPageProps) {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2 text-foreground">
-          สถานะ CCTV NVR
-        </h1>
-        <p className="text-muted-foreground">
-          ตรวจสอบสถานะและปัญหาของระบบ CCTV แบบเรียลไทม์
-        </p>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-card border-border shadow-sm">
-          <CardHeader className="pb-3 text-foreground">
-            <CardTitle className="text-lg">ทั้งหมด</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-foreground">
-              {nvrList.length}
+    <div className="min-h-screen bg-[#020617] text-slate-200 font-sans pb-12">
+      {/* Premium Header */}
+      <header className="sticky top-0 z-50 bg-[#020617]/80 backdrop-blur-md border-b border-slate-800/60 px-6 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="size-15 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center">
+              <img
+                  src="https://multiinno.com/wp-content/uploads/2025/06/cropped-logo-e1748947128387.webp"
+                  alt="Logo"
+                  className="h-12 w-auto object-contain"
+                />
             </div>
-            <p className="text-sm text-muted-foreground">จุดติดตั้งทั้งหมด</p>
-          </CardContent>
-        </Card>
-        <Card className="border-green-500/20 bg-green-500/5 shadow-sm">
-          <CardHeader className="pb-3 text-green-500">
-            <CardTitle className="text-lg">ทำงานปกติ</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-500">
-              {nvrList.filter((nvr) => !hasIssues(nvr)).length}
-            </div>
-            <p className="text-sm text-green-600/80">ไม่มีปัญหา</p>
-          </CardContent>
-        </Card>
-        <Card className="border-red-500/20 bg-red-500/5 shadow-sm">
-          <CardHeader className="pb-3 text-red-500">
-            <CardTitle className="text-lg">มีปัญหา</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-500">
-              {nvrList.filter((nvr) => hasIssues(nvr)).length}
-            </div>
-            <p className="text-sm text-red-600/80">ต้องตรวจสอบ</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <Card className="bg-card border-border">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
+              <h1 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                CCTV NVR Monitoring System
+                <Badge
+                  variant="outline"
+                  className="text-[10px] h-4 bg-blue-500/10 border-blue-500/30 text-blue-400 uppercase tracking-wider px-1"
+                >
+                  North District
+                </Badge>
+              </h1>
+              <p className="text-[10px] text-slate-400 flex items-center gap-2">
+                Bangkok Metropolitan Administration
+                <span className="inline-block size-1 rounded-full bg-slate-600"></span>
+                Status NVR Details
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <div className="hidden md:flex flex-col items-end text-[10px] space-y-0.5">
+              <span className="text-slate-500 uppercase tracking-widest font-bold">
+                Status Data
+              </span>
+              <span className="text-green-400 font-medium flex items-center gap-1.5">
+                <span className="size-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                Connected to Google Sheets
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange("dashboard")}
+                className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/30 border-slate-700/50 text-slate-300 hover:text-white hover:bg-slate-700/50 text-xs font-semibold rounded-md transition-all"
+              >
+                <LayoutDashboard className="size-3.5" />
+                Dashboard
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-md transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)]"
+              >
+                <div className="size-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Status NVR
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 md:px-6 pt-0 pb-8 space-y-8">
+        {/* Page Title Section */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pt-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <div>
+            <h2 className="text-3xl font-extrabold text-foreground tracking-tight">
+              Status CCTV NVR
+            </h2>
+            <p className="text-muted-foreground text-sm mt-1">
+              Detailed real-time monitoring and issue tracking across all
+              district nodes.
+            </p>
+          </div>
+        </div>
+
+        {/* Summary Cards - Synchronized with Dashboard */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Total Units */}
+          <div className="bg-[#0f172a] p-5 rounded-2xl border border-slate-800/50 flex flex-col justify-between relative overflow-hidden group">
+            <div className="flex items-center justify-between mb-2">
+              <div className="bg-blue-500/10 p-2 rounded-lg group-hover:bg-blue-500/20 transition-colors">
+                <Server className="size-5 text-blue-500" />
+              </div>
+              <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">
+                Total Units
+              </span>
+            </div>
+            <div>
+              <div className="text-3xl font-extrabold text-white mb-0.5">
+                {summaryStats.total.toLocaleString()}
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                Registered NVR Devices
+              </p>
+            </div>
+            <div className="absolute -right-2 -bottom-2 opacity-5 grayscale group-hover:grayscale-0 transition-all">
+              <Server className="size-20 text-blue-500" />
+            </div>
+          </div>
+
+          {/* Healthy */}
+          <div className="bg-[#0f172a] p-5 rounded-2xl border border-slate-800/50 flex flex-col justify-between relative overflow-hidden group">
+            <div className="flex items-center justify-between mb-2">
+              <div className="bg-emerald-500/10 p-2 rounded-lg group-hover:bg-emerald-500/20 transition-colors">
+                <CheckCircle className="size-5 text-emerald-500" />
+              </div>
+              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
+                Status: Healthy
+              </span>
+            </div>
+            <div>
+              <div className="text-3xl font-extrabold text-white mb-0.5">
+                {summaryStats.healthy.toLocaleString()}
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                {summaryStats.total > 0
+                  ? ((summaryStats.healthy / summaryStats.total) * 100).toFixed(
+                      1,
+                    )
+                  : 0}
+                % of total infrastructure
+              </p>
+            </div>
+            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
+              <CheckCircle className="size-20 text-emerald-500" />
+            </div>
+          </div>
+
+          {/* Attention */}
+          <div className="bg-[#0f172a] p-5 rounded-2xl border border-slate-800/50 flex flex-col justify-between relative overflow-hidden group">
+            <div className="flex items-center justify-between mb-2">
+              <div className="bg-amber-500/10 p-2 rounded-lg group-hover:bg-amber-500/20 transition-colors">
+                <AlertTriangle className="size-5 text-amber-500" />
+              </div>
+              <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">
+                Needs Attention
+              </span>
+            </div>
+            <div>
+              <div className="text-3xl font-extrabold text-white mb-0.5">
+                {summaryStats.attention.toLocaleString()}
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                Minor technical warnings
+              </p>
+            </div>
+            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
+              <AlertTriangle className="size-20 text-amber-500" />
+            </div>
+          </div>
+
+          {/* Critical */}
+          <div className="bg-[#0f172a] p-5 rounded-2xl border border-slate-800/50 flex flex-col justify-between relative overflow-hidden group">
+            <div className="flex items-center justify-between mb-2">
+              <div className="bg-rose-500/10 p-2 rounded-lg group-hover:bg-rose-500/20 transition-colors">
+                <XCircle className="size-5 text-rose-500" />
+              </div>
+              <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest">
+                Critical Failure
+              </span>
+            </div>
+            <div>
+              <div className="text-3xl font-extrabold text-white mb-0.5">
+                {summaryStats.critical.toLocaleString()}
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                Priority intervention required
+              </p>
+            </div>
+            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
+              <XCircle className="size-20 text-rose-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Filters & Content */}
+        <Tabs defaultValue="all" className="space-y-6">
+          <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-slate-900/40 p-2 rounded-2xl border border-slate-800/60 backdrop-blur-sm">
+            <TabsList className="bg-slate-950/50 p-1 border border-slate-800/50 rounded-xl h-12">
+              <TabsTrigger
+                value="all"
+                className="rounded-lg data-[state=active]:bg-slate-800 data-[state=active]:text-white transition-all px-6"
+              >
+                All Units ({filteredNVRList.length})
+              </TabsTrigger>
+              <TabsTrigger
+                value="problem"
+                className="rounded-lg data-[state=active]:bg-red-500/20 data-[state=active]:text-red-400 transition-all px-6"
+              >
+                Problematic ({problemNVRs.length})
+              </TabsTrigger>
+              <TabsTrigger
+                value="normal"
+                className="rounded-lg data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 transition-all px-6"
+              >
+                Healthy ({normalNVRs.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <div className="flex gap-3 w-full md:w-auto">
+              <div className="relative flex-1 md:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-500" />
                 <Input
-                  placeholder="ค้นหาด้วย NVR, สถานที่, หรือเขต..."
+                  placeholder="Search NVR, Location..."
                   value={searchTerm}
                   onChange={(e) => handleSearchChange(e.target.value)}
-                  className="pl-10 bg-background border-border text-foreground"
+                  className="pl-10 h-10 bg-slate-950/50 border-slate-800 focus:border-blue-500/50 text-slate-200 rounded-xl transition-all"
                 />
               </div>
-            </div>
-            <div>
               <Select
                 value={selectedDistrict}
                 onValueChange={handleDistrictChange}
               >
-                <SelectTrigger className="bg-background border-border text-foreground">
-                  <SelectValue placeholder="เลือกเขต" />
+                <SelectTrigger className="w-40 h-10 bg-slate-950/50 border-slate-800 text-slate-200 rounded-xl">
+                  <SelectValue placeholder="District" />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-border text-foreground">
-                  <SelectItem value="all">ทุกเขต</SelectItem>
-                  {districts.map((district) => (
-                    <SelectItem key={district} value={district}>
-                      เขต{district}
+                <SelectContent className="bg-slate-900 border-slate-800 text-slate-200">
+                  <SelectItem value="all">All Districts</SelectItem>
+                  {districts.map((d) => (
+                    <SelectItem key={d} value={d}>
+                    {d} 
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Tabs */}
-      <Tabs defaultValue="all" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="all">
-            ทั้งหมด ({filteredNVRList.length})
-          </TabsTrigger>
-          <TabsTrigger value="problem">
-            มีปัญหา ({problemNVRs.length})
-          </TabsTrigger>
-          <TabsTrigger value="normal">ปกติ ({normalNVRs.length})</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="all" className="space-y-2">
-          {/* Table Header */}
-          <div className="bg-muted/50 border border-border rounded-lg p-3">
-            <div className="grid grid-cols-12 gap-3 items-center text-xs font-semibold text-muted-foreground uppercase">
-              <div className="col-span-3">NVR / สถานที่</div>
-              <div className="col-span-1">เขต</div>
-              <div className="col-span-5 text-center">สถานะระบบ</div>
-              <div className="col-span-3 text-right">กล้อง / สถานะ</div>
+          <TabsContent value="all" className="space-y-3">
+            {renderTableHeader()}
+            <div className="space-y-3">
+              {getPaginatedItems(filteredNVRList).map((nvr) =>
+                renderNVRRow(nvr),
+              )}
             </div>
-          </div>
+            <Pagination items={filteredNVRList} label="units" />
+          </TabsContent>
 
-          {getPaginatedItems(filteredNVRList).map((nvr) => renderNVRRow(nvr))}
-          {filteredNVRList.length === 0 && (
-            <Card>
-              <CardContent className="py-8 text-center text-gray-500">
-                ไม่พบข้อมูลที่ค้นหา
-              </CardContent>
-            </Card>
-          )}
-          <Pagination items={filteredNVRList} label="ทั้งหมด" />
-        </TabsContent>
-
-        <TabsContent value="problem" className="space-y-2">
-          {/* Table Header */}
-          <div className="bg-muted/50 border border-border rounded-lg p-3">
-            <div className="grid grid-cols-12 gap-3 items-center text-xs font-semibold text-muted-foreground uppercase">
-              <div className="col-span-3">NVR / สถานที่</div>
-              <div className="col-span-1">เขต</div>
-              <div className="col-span-5 text-center">สถานะระบบ</div>
-              <div className="col-span-3 text-right">กล้อง / สถานะ</div>
+          <TabsContent value="problem" className="space-y-3">
+            {renderTableHeader()}
+            <div className="space-y-3">
+              {getPaginatedItems(problemNVRs).map((nvr) => renderNVRRow(nvr))}
             </div>
-          </div>
-
-          {getPaginatedItems(problemNVRs).map((nvr) => renderNVRRow(nvr))}
-          {problemNVRs.length === 0 && (
-            <Card>
-              <CardContent className="py-8 text-center">
-                <CheckCircle className="size-12 mx-auto text-green-600 mb-2" />
-                <p className="text-gray-600">
-                  ไม่มี NVR ที่มีปัญหา ระบบทำงานปกติทั้งหมด
+            {problemNVRs.length === 0 && (
+              <div className="py-20 text-center bg-slate-900/20 rounded-2xl border border-dashed border-slate-800">
+                <CheckCircle className="size-16 mx-auto text-green-500/20 mb-4" />
+                <h3 className="text-xl font-bold text-slate-300">
+                  All Systems Normal
+                </h3>
+                <p className="text-slate-500 text-sm mt-1">
+                  No critical issues detected in the selected district.
                 </p>
-              </CardContent>
-            </Card>
-          )}
-          <Pagination items={problemNVRs} label="มีปัญหา" />
-        </TabsContent>
+              </div>
+            )}
+            <Pagination items={problemNVRs} label="problem units" />
+          </TabsContent>
 
-        <TabsContent value="normal" className="space-y-2">
-          {/* Table Header */}
-          <div className="bg-muted/50 border border-border rounded-lg p-3">
-            <div className="grid grid-cols-12 gap-3 items-center text-xs font-semibold text-muted-foreground uppercase">
-              <div className="col-span-3">NVR / สถานที่</div>
-              <div className="col-span-1">เขต</div>
-              <div className="col-span-5 text-center">สถานะระบบ</div>
-              <div className="col-span-3 text-right">กล้อง / สถานะ</div>
+          <TabsContent value="normal" className="space-y-3">
+            {renderTableHeader()}
+            <div className="space-y-3">
+              {getPaginatedItems(normalNVRs).map((nvr) => renderNVRRow(nvr))}
             </div>
-          </div>
-
-          {getPaginatedItems(normalNVRs).map((nvr) => renderNVRRow(nvr))}
-          {normalNVRs.length === 0 && (
-            <Card>
-              <CardContent className="py-8 text-center text-gray-500">
-                ไม่พบ NVR ที่ทำงานปกติ
-              </CardContent>
-            </Card>
-          )}
-          <Pagination items={normalNVRs} label="ปกติ" />
-        </TabsContent>
-      </Tabs>
+            <Pagination items={normalNVRs} label="healthy units" />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
+
+  function renderTableHeader() {
+    return (
+      <div className="px-6 py-3 bg-[#0f172a]/40 border border-slate-800/40 rounded-xl mb-2">
+        <div className="grid grid-cols-12 gap-4 items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+          <div className="col-span-3">NVR / Node Identity</div>
+          <div className="col-span-1">District</div>
+          <div className="col-span-5 text-center">Infrastructure Check</div>
+          <div className="col-span-3 text-right">Capacity / Health</div>
+        </div>
+      </div>
+    );
+  }
 }

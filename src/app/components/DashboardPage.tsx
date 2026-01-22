@@ -162,15 +162,16 @@ export function DashboardPage({ tickets }: { tickets: RepairTicket[] }) {
   ];
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">
-          Dashboard ภาพรวมการซ่อม CCTV
-        </h1>
-        <p className="text-gray-600">
-          ภาพรวมการแจ้งซ่อมและสถานะการดำเนินงานทั้งหมด
-        </p>
-      </div>
+    <div className="min-h-screen bg-background transition-colors duration-300">
+      <div className="container mx-auto pt-0 px-4 md:px-6 space-y-6">
+        <div className="pt-6">
+          <h1 className="text-3xl font-bold mb-2">
+            Dashboard ภาพรวมการซ่อม CCTV
+          </h1>
+          <p className="text-foreground/60">
+            ภาพรวมการแจ้งซ่อมและสถานะการดำเนินงานทั้งหมด
+          </p>
+        </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

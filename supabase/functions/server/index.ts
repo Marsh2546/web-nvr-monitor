@@ -193,21 +193,6 @@ app.post("/log-status", async (c) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // --- CHANGE DETECTION LOGIC ---
-    // ดึงสถานะที่บันทึกล่าสุดจาก KV Store มาเปรียบเทียบ
-    const lastStatusHash = await kv.get("last_nvr_status_hash");
-    const currentStatusHash = JSON.stringify(nvrData); // ใช้ stringify โดยตรง (ไม่ต้องใช้ btoa เพื่อรองรับภาษาไทย)
-
-    if (lastStatusHash === currentStatusHash) {
-      console.log("No status changes detected. Skipping database log.");
-      return c.json({
-        success: true,
-        logged: 0,
-        message: "No changes detected",
-        timestamp: new Date().toISOString(),
-      });
-    }
-
     // Prepare logs for insertion
     const logs = nvrData.map((nvr) => {
       return {
@@ -236,12 +221,7 @@ app.post("/log-status", async (c) => {
       throw new Error(`Failed to insert logs: ${error.message}`);
     }
 
-    // อัปเดต Hash ล่าสุดเก็บไว้
-    await kv.set("last_nvr_status_hash", currentStatusHash);
-
-    console.log(
-      `Successfully logged ${logs.length} NVR status snapshots due to detected changes`,
-    );
+    console.log(`Successfully logged ${logs.length} NVR status snapshots`);
 
     return c.json({
       success: true,

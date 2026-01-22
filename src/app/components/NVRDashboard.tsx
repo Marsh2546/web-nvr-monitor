@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
 import {
   Server,
   CheckCircle,
@@ -36,9 +37,11 @@ import {
   Cell,
 } from "recharts";
 import { useState, useEffect, useMemo } from "react";
+import { cn } from "@/lib/utils"; // Assuming cn is available for cleaner classes
 
 interface NVRDashboardProps {
   nvrList: NVRStatus[];
+  onPageChange: (page: "dashboard" | "status") => void;
 }
 
 // ✅ Extended NVR type with computed properties
@@ -48,10 +51,31 @@ interface NVRWithIssues extends NVRStatus {
   issues: string[];
 }
 
-export function NVRDashboard({ nvrList }: NVRDashboardProps) {
+export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
   const [criticalPage, setCriticalPage] = useState(1);
   const [issueChartReady, setIssueChartReady] = useState(false);
+  const [currentTime, setCurrentTime] = useState("");
   const criticalPerPage = 5;
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(
+        now.toLocaleString("th-TH", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        }),
+      );
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // ✅ useMemo: คำนวณ issues ครั้งเดียว แทนที่จะคำนวณทุกครั้งที่ render
   const nvrWithIssues = useMemo(
@@ -151,387 +175,537 @@ export function NVRDashboard({ nvrList }: NVRDashboardProps) {
   }, [nvrList]);
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2 text-foreground">
-          Dashboard ภาพรวม CCTV NVR
-        </h1>
-        <p className="text-muted-foreground">
-          สถานะและการทำงานของระบบ CCTV NVR ทั้งหมดในกรุงเทพมหานคร
-        </p>
-      </div>
-
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-card border-border shadow-sm">
-          <CardHeader className="pb-3 text-foreground">
-            <div className="flex items-center gap-2">
-              <Server className="size-5 text-primary" />
-              <CardTitle className="text-lg">NVR ทั้งหมด</CardTitle>
+    <div className="min-h-screen bg-[#020617] text-slate-200 font-sans pb-12">
+      {/* Premium Header - Synchronized with Status Page */}
+      <header className="sticky top-0 z-50 bg-[#020617]/80 backdrop-blur-md border-b border-slate-800/60 px-6 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="size-15 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center">
+              <img
+                  src="https://multiinno.com/wp-content/uploads/2025/06/cropped-logo-e1748947128387.webp"
+                  alt="Logo"
+                  className="h-12 w-auto object-contain"
+                />
             </div>
-          </CardHeader>
-          <CardContent className="text-foreground">
-            <div className="text-3xl font-bold">{stats.totalNVR}</div>
-            <p className="text-sm text-muted-foreground">จุดติดตั้งทั้งหมด</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-green-500/20 bg-green-500/5 shadow-sm">
-          <CardHeader className="pb-3 text-green-500">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="size-5" />
-              <CardTitle className="text-lg">ทำงานปกติ</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-500">
-              {stats.normalNVR}
-            </div>
-            <p className="text-sm text-green-600/80">
-              {stats.totalNVR > 0
-                ? ((stats.normalNVR / stats.totalNVR) * 100).toFixed(1)
-                : 0}
-              % ของทั้งหมด
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-red-500/20 bg-red-500/5 shadow-sm">
-          <CardHeader className="pb-3 text-red-500">
-            <div className="flex items-center gap-2">
-              <XCircle className="size-5" />
-              <CardTitle className="text-lg">มีปัญหา</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-500">
-              {stats.problemNVR}
-            </div>
-            <p className="text-sm text-red-600/80">ต้องดำเนินการ</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-orange-500/20 bg-orange-500/5 shadow-sm">
-          <CardHeader className="pb-3 text-orange-500">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="size-5" />
-              <CardTitle className="text-lg">วิกฤต</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-orange-500">
-              {stats.criticalNVRs.length}
-            </div>
-            <p className="text-sm text-orange-600/80">
-              มีปัญหามากกว่า 1 รายการ
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Critical Alerts */}
-      {stats.criticalNVRs.length > 0 && (
-        <Card className="border-red-500 bg-red-500/5 shadow-lg">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="size-6 text-red-600" />
-              <CardTitle className="text-red-900">
-                รายการวิกฤต - ต้องดำเนินการเร่งด่วน ({stats.criticalNVRs.length}{" "}
-                รายการ)
-              </CardTitle>
-            </div>
-            <CardDescription className="text-red-500/80">
-              NVR ที่มีปัญหาหลายรายการพร้อมกัน
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4 max-h-[520px] overflow-y-auto pr-2 overlay-scrollbar">
-              {stats.criticalNVRs.map((nvr) => (
-                <div
-                  key={nvr.id}
-                  className="bg-white p-4 rounded-lg border border-red-200 shadow-sm"
+            <div>
+              <h1 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                CCTV NVR Monitoring System
+                <Badge
+                  variant="outline"
+                  className="text-[10px] h-4 bg-blue-500/10 border-blue-500/30 text-blue-400 uppercase tracking-wider px-1"
                 >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-red-900">
-                          {nvr.nvr}
-                        </span>
-                        <Badge variant="destructive" className="text-xs">
-                          {nvr.issueCount} ปัญหา
-                        </Badge>
+                  North District
+                </Badge>
+              </h1>
+              <p className="text-[10px] text-slate-400 flex items-center gap-2">
+                Bangkok Metropolitan Administration
+                <span className="inline-block size-1 rounded-full bg-slate-600"></span>
+                Dashboard Overview
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <div className="hidden md:flex flex-col items-end text-[10px] space-y-0.5">
+              <span className="text-slate-500 uppercase tracking-widest font-bold">
+                Status Data
+              </span>
+              <span className="text-green-400 font-medium flex items-center gap-1.5">
+                <span className="size-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                Connected to Google Sheets
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => onPageChange("dashboard")}
+                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-md transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)]"
+              >
+                <div className="size-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Dashboard
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange("status")}
+                className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/30 border-slate-700/50 text-slate-300 hover:text-white hover:bg-slate-700/50 text-xs font-semibold rounded-md transition-all"
+              >
+                <div className="size-1.5 rounded-full bg-slate-500" />
+                Status NVR
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-8 space-y-8">
+        {/* Page Title & Time */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pt-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <div>
+            <h2 className="text-3xl font-extrabold text-foreground tracking-tight">
+              Dashboard Overview
+            </h2>
+            <p className="text-muted-foreground text-sm mt-1">
+              Real-time infrastructure health and distribution telemetry.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 bg-slate-900/40 px-4 py-2 rounded-xl border border-slate-800/60 backdrop-blur-sm">
+            <div className="size-2 rounded-full bg-blue-500 animate-pulse"></div>
+            <span className="text-xs font-mono text-slate-300">
+              TELEMETRY: {currentTime}
+            </span>
+          </div>
+        </div>
+
+        {/* --- Summary Stats (4-grid) --- */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Total Units */}
+          <div className="bg-[#0f172a] p-5 rounded-2xl border border-slate-800/50 flex flex-col justify-between relative overflow-hidden group">
+            <div className="flex items-center justify-between mb-2">
+              <div className="bg-blue-500/10 p-2 rounded-lg group-hover:bg-blue-500/20 transition-colors">
+                <Server className="size-5 text-blue-500" />
+              </div>
+              <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">
+                Total Units
+              </span>
+            </div>
+            <div>
+              <div className="text-3xl font-extrabold text-white mb-0.5">
+                {stats.totalNVR.toLocaleString()}
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                Registered NVR Devices
+              </p>
+            </div>
+            <div className="absolute -right-2 -bottom-2 opacity-5 grayscale group-hover:grayscale-0 transition-all">
+              <Server className="size-20 text-blue-500" />
+            </div>
+          </div>
+
+          {/* Healthy */}
+          <div className="bg-[#0f172a] p-5 rounded-2xl border border-slate-800/50 flex flex-col justify-between relative overflow-hidden group">
+            <div className="flex items-center justify-between mb-2">
+              <div className="bg-emerald-500/10 p-2 rounded-lg group-hover:bg-emerald-500/20 transition-colors">
+                <CheckCircle className="size-5 text-emerald-500" />
+              </div>
+              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
+                Status: Healthy
+              </span>
+            </div>
+            <div>
+              <div className="text-3xl font-extrabold text-white mb-0.5">
+                {stats.normalNVR.toLocaleString()}
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                {stats.totalNVR > 0
+                  ? ((stats.normalNVR / stats.totalNVR) * 100).toFixed(1)
+                  : 0}
+                % of total infrastructure
+              </p>
+            </div>
+            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
+              <CheckCircle className="size-20 text-emerald-500" />
+            </div>
+          </div>
+
+          {/* Attention */}
+          <div className="bg-[#0f172a] p-5 rounded-2xl border border-slate-800/50 flex flex-col justify-between relative overflow-hidden group">
+            <div className="flex items-center justify-between mb-2">
+              <div className="bg-amber-500/10 p-2 rounded-lg group-hover:bg-amber-500/20 transition-colors">
+                <AlertTriangle className="size-5 text-amber-500" />
+              </div>
+              <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">
+                Needs Attention
+              </span>
+            </div>
+            <div>
+              <div className="text-3xl font-extrabold text-white mb-0.5">
+                {stats.problemNVR.toLocaleString()}
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                Minor technical warnings
+              </p>
+            </div>
+            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
+              <AlertTriangle className="size-20 text-amber-500" />
+            </div>
+          </div>
+
+          {/* Critical */}
+          <div className="bg-[#0f172a] p-5 rounded-2xl border border-slate-800/50 flex flex-col justify-between relative overflow-hidden group">
+            <div className="flex items-center justify-between mb-2">
+              <div className="bg-rose-500/10 p-2 rounded-lg group-hover:bg-rose-500/20 transition-colors">
+                <XCircle className="size-5 text-rose-500" />
+              </div>
+              <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest">
+                Critical Failure
+              </span>
+            </div>
+            <div>
+              <div className="text-3xl font-extrabold text-white mb-0.5">
+                {stats.criticalNVRs.length.toLocaleString()}
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                Priority intervention required
+              </p>
+            </div>
+            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
+              <XCircle className="size-20 text-rose-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* --- Main Content Grid --- */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column: Critical Issues (7 cols) */}
+          <div className="lg:col-span-7 space-y-4">
+            <div className="bg-gradient-to-br from-slate-900 to-slate-950 rounded-2xl border border-rose-500/30 shadow-[0_0_30px_rgba(239,68,68,0.15)] flex flex-col overflow-hidden">
+              <div className="p-6 border-b border-rose-500/20 bg-gradient-to-r from-rose-500/10 via-transparent to-transparent flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-rose-500/30 p-2 rounded-lg">
+                    <AlertTriangle className="size-5 text-rose-400" />
+                  </div>
+                  <h3 className="font-bold text-white uppercase tracking-wide text-base">
+                    Critical Issues Requiring Immediate Action (
+                    {stats.criticalNVRs.length} items)
+                  </h3>
+                </div>
+              </div>
+              <div className="p-4 space-y-3 max-h-[560px] overflow-y-auto scrollbar-thin scrollbar-thumb-rose-500/40 scrollbar-track-transparent hover:scrollbar-thumb-rose-500/60">
+                {stats.criticalNVRs.length > 0 ? (
+                  stats.criticalNVRs.map((nvr) => (
+                    <div
+                      key={nvr.id}
+                      className="bg-gradient-to-r from-rose-500/5 to-transparent border border-rose-500/20 p-4 rounded-xl hover:border-rose-500/50 hover:bg-rose-500/10 transition-all duration-200 shadow-sm hover:shadow-[0_0_15px_rgba(239,68,68,0.1)]"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-lg font-bold text-white">
+                              {nvr.nvr}
+                            </span>
+                            <Badge className="text-xs px-2.5 py-0.5 bg-rose-500/30 text-rose-200 border border-rose-500/50 font-bold uppercase">
+                              {nvr.issueCount} Issues Found
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                            <MapPin className="size-3.5 text-slate-500" />
+                            <span className="font-medium">
+                              {nvr.location} ({nvr.district})
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <MapPin className="size-4" />
-                        <span>
-                          {nvr.location} (เขต{nvr.district})
-                        </span>
+                      <div className="flex flex-wrap gap-2">
+                        {nvr.issues.map((issue, idx) => (
+                          <Badge
+                            key={idx}
+                            className="flex items-center gap-1.5 text-xs py-1.5 px-2.5 bg-rose-500/20 text-rose-300 border border-rose-500/40 font-semibold hover:bg-rose-500/30 transition-colors"
+                          >
+                            <XCircle className="size-3" />
+                            {issue}
+                          </Badge>
+                        ))}
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-16 text-slate-500 italic">
+                    <CheckCircle className="size-12 text-emerald-500/30 mb-3" />
+                    <p className="font-medium">No critical issues detected.</p>
                   </div>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {nvr.issues.map((issue, idx) => (
-                      <Badge
-                        key={idx}
-                        variant="outline"
-                        className="bg-red-100 text-red-800 border-red-200"
-                      >
-                        <XCircle className="size-3 mr-1" />
-                        {issue}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                )}
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>สัดส่วนสถานะ NVR</CardTitle>
-            <CardDescription>แสดงสถานะทั่วไปของระบบ</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="relative h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData.statusData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                    cornerRadius={5}
-                    stroke="none"
-                  >
-                    {chartData.statusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "var(--card)",
-                      borderRadius: "8px",
-                      border: "1px solid var(--border)",
-                      color: "var(--foreground)",
-                    }}
-                    labelStyle={{ color: "var(--foreground)" }}
-                    itemStyle={{ color: "var(--foreground)" }}
-                  />
-                  <Legend
-                    verticalAlign="bottom"
-                    height={36}
-                    iconType="circle"
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-3xl font-bold text-foreground">
-                  {stats.totalNVR}
+          {/* Right Column: Charts Breakdown (5 cols) */}
+          <div className="lg:col-span-5 space-y-6">
+            {/* Chart 1: Status Distribution */}
+            <div className="bg-[#0f172a] p-6 rounded-2xl border border-slate-800 shadow-lg">
+              <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">
+                NVR Status Distribution
+              </h3>
+              <div className="h-[250px] w-full relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartData.statusData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={70}
+                      outerRadius={95}
+                      paddingAngle={0}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {chartData.statusData.map((entry, index) => (
+                        <Cell
+                          key={`cell-status-${index}`}
+                          fill={index === 0 ? "#3b82f6" : "#f43f5e"}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#0f172a",
+                        border: "1px solid #1e293b",
+                        borderRadius: "12px",
+                      }}
+                      itemStyle={{ color: "#fff", fontSize: "12px" }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-2xl font-black text-white">
+                    {stats.totalNVR.toLocaleString()}
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                    Total Units
+                  </span>
+                </div>
+              </div>
+              <div className="flex justify-center gap-6 mt-2">
+                <div className="flex items-center gap-2">
+                  <div className="size-2 rounded-full bg-blue-500" />
+                  <span className="text-xs text-slate-400 font-medium">
+                    Healthy (
+                    {((stats.normalNVR / stats.totalNVR) * 100).toFixed(0)}%)
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="size-2 rounded-full bg-rose-500" />
+                  <span className="text-xs text-slate-400 font-medium">
+                    Failure (
+                    {((stats.problemNVR / stats.totalNVR) * 100).toFixed(0)}%)
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Chart 2: Issue Breakdown */}
+            <div className="bg-[#0f172a] p-6 rounded-2xl border border-slate-800 shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                  Issue Type Breakdown
+                </h3>
+                <div className="size-4 bg-slate-700/50 rounded-full flex items-center justify-center cursor-help">
+                  <span className="text-[10px] text-slate-400 font-bold">
+                    i
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="h-[180px] w-1/2 relative">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={chartData.issueData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={55}
+                        outerRadius={75}
+                        paddingAngle={4}
+                        dataKey="value"
+                        stroke="none"
+                      >
+                        {chartData.issueData.map((entry, index) => (
+                          <Cell key={`cell-issue-${index}`} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="w-1/2 space-y-2.5">
+                  {chartData.issueData.map((issue, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="size-1.5 rounded-full"
+                          style={{ backgroundColor: issue.fill }}
+                        />
+                        <span className="text-[11px] text-slate-400 group-hover:text-slate-200 transition-colors uppercase font-medium">
+                          {issue.name.split(" ")[0]} {issue.name.split(" ")[1]}
+                        </span>
+                      </div>
+                      <span className="text-xs font-bold text-slate-300">
+                        {issue.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* --- Bottom Section: Health by District & Issue Grid --- */}
+        <div className="bg-[#0f172a] rounded-2xl border border-slate-800 shadow-lg p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-base font-bold text-white mb-1 uppercase tracking-tight">
+                Health Status by District
+              </h3>
+              <p className="text-xs text-slate-500">
+                Distribution of healthy vs failing units per district
+              </p>
+            </div>
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2">
+                <div className="size-2 rounded-full bg-blue-500" />
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                  Healthy
                 </span>
-                <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                  Total
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="size-2 rounded-full bg-rose-500" />
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                  Failing
                 </span>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {chartData.issueData.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-foreground">รายละเอียดปัญหา</CardTitle>
-              <CardDescription className="text-muted-foreground">
-                ประเภทปัญหาที่พบ
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={chartData.issueData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={2}
-                    dataKey="value"
-                    cornerRadius={4}
-                    stroke="none"
-                    onAnimationEnd={() => setIssueChartReady(true)}
-                    label={({ x, y, value, payload }) => (
-                      <text
-                        x={x}
-                        y={y}
-                        fill={payload.fill}
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                        className="text-xs font-bold"
-                        style={{
-                          fontSize: "15px",
-                          opacity: issueChartReady ? 1 : 0,
-                          transition: "opacity 0.5s ease-in-out",
-                          // textShadow: "0 1px 2px rgba(255,255,255,0.8)",
-                        }}
-                      >
-                        {value}
-                      </text>
-                    )}
-                    labelLine={false}
-                  >
-                    {chartData.issueData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <Legend
-                    layout="vertical"
-                    align="right"
-                    verticalAlign="middle"
-                    iconType="circle"
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "var(--card)",
-                      borderRadius: "8px",
-                      border: "1px solid var(--border)",
-                      color: "var(--foreground)",
-                    }}
-                    labelStyle={{ color: "var(--foreground)" }}
-                    itemStyle={{ color: "var(--foreground)" }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+          <div className="h-[300px] w-full mb-8">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData.districtData}
+                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+              >
+                <CartesianGrid
+                  vertical={false}
+                  stroke="#1e293b"
+                  strokeDasharray="3 3"
+                />
+                <XAxis
+                  dataKey="district"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#64748b", fontSize: 10, fontWeight: 600 }}
+                  dy={10}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#64748b", fontSize: 10, fontWeight: 600 }}
+                />
+                <Tooltip
+                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                  contentStyle={{
+                    backgroundColor: "#0f172a",
+                    border: "1px solid #1e293b",
+                    borderRadius: "12px",
+                    padding: "12px",
+                  }}
+                  itemStyle={{ fontSize: "12px" }}
+                />
+                <Bar
+                  dataKey="normal"
+                  fill="#3b82f6"
+                  radius={[4, 4, 0, 0]}
+                  barSize={24}
+                />
+                <Bar
+                  dataKey="problem"
+                  fill="#f43f5e"
+                  radius={[4, 4, 0, 0]}
+                  barSize={24}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
 
-      {/* District Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-foreground">สถานะแยกตามเขต</CardTitle>
-          <CardDescription className="text-muted-foreground">
-            จำนวน NVR และสถานะในแต่ละเขต
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={chartData.districtData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              {/* @ts-expect-error: Recharts type definition issue */}
-              <XAxis dataKey="district" stroke="var(--muted-foreground)" />
-              {/* @ts-expect-error: Recharts type definition issue */}
-              <YAxis stroke="var(--muted-foreground)" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "var(--card)",
-                  borderRadius: "8px",
-                  border: "1px solid var(--border)",
-                  color: "var(--foreground)",
-                }}
-                labelStyle={{ color: "var(--foreground)" }}
-                itemStyle={{ color: "var(--foreground)" }}
-              />
-              <Legend />
-              <Bar
-                dataKey="normal"
-                name="ปกติ"
-                fill="var(--chart-1)"
-                radius={[4, 4, 0, 0]}
-              />
-              <Bar
-                dataKey="problem"
-                name="มีปัญหา"
-                fill="var(--destructive)"
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+          {/* Small Breakdown Tiles */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-6 border-t border-slate-800/50">
+            <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 flex flex-col items-start gap-1">
+              <div className="flex items-center gap-1.5 opacity-60">
+                <Wifi className="size-3" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  ONU Ping
+                </span>
+              </div>
+              <div className="text-xl font-bold text-rose-500">
+                {stats.pingOnuFail}
+              </div>
+              <span className="text-[9px] text-slate-600 font-medium">
+                No response
+              </span>
+            </div>
+            <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 flex flex-col items-start gap-1">
+              <div className="flex items-center gap-1.5 opacity-60">
+                <Server className="size-3" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  NVR Ping
+                </span>
+              </div>
+              <div className="text-xl font-bold text-rose-500">
+                {stats.pingNvrFail}
+              </div>
+              <span className="text-[9px] text-slate-600 font-medium">
+                Connection timeout
+              </span>
+            </div>
+            <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 flex flex-col items-start gap-1">
+              <div className="flex items-center gap-1.5 opacity-60">
+                <HardDrive className="size-3" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  HDD Status
+                </span>
+              </div>
+              <div className="text-xl font-bold text-amber-500">
+                {stats.hddFail}
+              </div>
+              <span className="text-[9px] text-slate-600 font-medium">
+                Write errors
+              </span>
+            </div>
+            <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 flex flex-col items-start gap-1">
+              <div className="flex items-center gap-1.5 opacity-60">
+                <Eye className="size-3" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  Display
+                </span>
+              </div>
+              <div className="text-xl font-bold text-amber-500">
+                {stats.viewFail}
+              </div>
+              <span className="text-[9px] text-slate-600 font-medium">
+                Camera obstruction
+              </span>
+            </div>
+            <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 flex flex-col items-start gap-1">
+              <div className="flex items-center gap-1.5 opacity-60">
+                <LogIn className="size-3" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  Login
+                </span>
+              </div>
+              <div className="text-xl font-bold text-rose-500">
+                {stats.loginFail}
+              </div>
+              <span className="text-[9px] text-slate-600 font-medium">
+                Auth failed
+              </span>
+            </div>
+          </div>
+        </div>
 
-      {/* Issue Breakdown by Type */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card className="bg-card border-border shadow-sm">
-          <CardHeader className="pb-3 text-foreground">
-            <div className="flex items-center gap-2">
-              <Wifi className="size-4 text-red-500" />
-              <CardTitle className="text-sm">ONU Ping</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-500">
-              {stats.pingOnuFail}
-            </div>
-            <p className="text-xs text-muted-foreground">ไม่ตอบสนอง</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border shadow-sm">
-          <CardHeader className="pb-3 text-foreground">
-            <div className="flex items-center gap-2">
-              <Server className="size-4 text-red-500" />
-              <CardTitle className="text-sm">NVR Ping</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-500">
-              {stats.pingNvrFail}
-            </div>
-            <p className="text-xs text-muted-foreground">ไม่ตอบสนอง</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border shadow-sm">
-          <CardHeader className="pb-3 text-foreground">
-            <div className="flex items-center gap-2">
-              <HardDrive className="size-4 text-orange-500" />
-              <CardTitle className="text-sm">HDD</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-500">
-              {stats.hddFail}
-            </div>
-            <p className="text-xs text-muted-foreground">มีปัญหา</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border shadow-sm">
-          <CardHeader className="pb-3 text-foreground">
-            <div className="flex items-center gap-2">
-              <Eye className="size-4 text-yellow-500" />
-              <CardTitle className="text-sm">แสดงภาพ</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-500">
-              {stats.viewFail}
-            </div>
-            <p className="text-xs text-muted-foreground">ผิดปกติ</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border shadow-sm">
-          <CardHeader className="pb-3 text-foreground">
-            <div className="flex items-center gap-2">
-              <LogIn className="size-4 text-yellow-500" />
-              <CardTitle className="text-sm">Login</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-500">
-              {stats.loginFail}
-            </div>
-            <p className="text-xs text-muted-foreground">ไม่ได้</p>
-          </CardContent>
-        </Card>
+        {/* --- Footer --- */}
+        <footer className="mt-4 pb-4 text-center">
+          <p className="text-[10px] text-slate-500 font-medium tracking-wide">
+            Data provided via Google Sheets API | Total{" "}
+            {stats.totalNVR.toLocaleString()} Nodes | Date:{" "}
+            {new Date().toLocaleDateString("en-US", {
+              month: "long",
+              day: "2-digit",
+              year: "numeric",
+            })}
+          </p>
+        </footer>
       </div>
     </div>
   );
