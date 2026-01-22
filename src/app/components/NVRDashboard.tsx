@@ -514,6 +514,14 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                           <Cell key={`cell-issue-${index}`} fill={entry.fill} />
                         ))}
                       </Pie>
+                      <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#0f172a",
+                        border: "1px solid #1e293b",
+                        borderRadius: "12px",
+                      }}
+                      itemStyle={{ color: "#fff", fontSize: "12px" }}
+                    /> 
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
