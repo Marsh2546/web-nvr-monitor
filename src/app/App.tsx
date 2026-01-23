@@ -152,9 +152,6 @@ export default function App() {
                         {isDashboard && <LayoutDashboard className="size-3.5" />}
                         {isStatus && <ClipboardList className="size-3.5" />}
                         {PageClass.getDisplayName()}
-                        {!isStatus && (
-                          <div className="size-1.5 rounded-full bg-white/60 animate-pulse" />
-                        )}
                       </Button>
                     );
                   });

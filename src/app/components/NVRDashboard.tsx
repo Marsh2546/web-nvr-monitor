@@ -86,7 +86,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
         if (!nvr.ping_onu) issues.push("ONU Ping");
         if (!nvr.ping_nvr) issues.push("NVR Ping");
         if (!nvr.hdd_status) issues.push("HDD");
-        if (!nvr.normal_view) issues.push("แสดงภาพ");
+        if (!nvr.normal_view) issues.push("View");
         if (!nvr.check_login) issues.push("Login");
 
         return {
@@ -138,11 +138,11 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
       // { value: stats.hddFail, fill: "#f97316" }, // orange-500
       // { value: stats.viewFail, fill: "#eab308" }, // yellow-500
       // { value: stats.loginFail, fill: "#84cc16" }, // lime-500
-      { name: "OUN PING ไม่ได้", value: stats.pingOnuFail, fill: "#f43f5e" }, // rose-500
-      { name: "NVR PING ไม่ได้", value: stats.pingNvrFail, fill: "#ef4444" }, // red-500
-      { name: "HDD มีปัญหา", value: stats.hddFail, fill: "#f97316" }, // orange-500
-      { name: "แสดงภาพผิดปกติ", value: stats.viewFail, fill: "#eab308" }, // yellow-500
-      { name: "LOGIN ไม่ได้", value: stats.loginFail, fill: "#84cc16" }, // lime-500
+      { name: "ONU Connectivity Issue", value: stats.pingOnuFail, fill: "#f43f5e" }, // rose-500
+      { name: "NVR Connectivity Issue", value: stats.pingNvrFail, fill: "#ef4444" }, // red-500
+      { name: "HDD Storage Issue", value: stats.hddFail, fill: "#f97316" }, // orange-500
+      { name: "Video Display Issue", value: stats.viewFail, fill: "#eab308" }, // yellow-500
+      { name: "Login Access Issue", value: stats.loginFail, fill: "#84cc16" }, // lime-500
     ].filter((item) => item.value > 0);
 
     const districtData = nvrWithIssues.reduce(
