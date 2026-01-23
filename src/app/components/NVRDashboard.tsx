@@ -22,6 +22,7 @@ import {
   LogIn,
   Wifi,
   MapPin,
+  Info,
 } from "lucide-react";
 import {
   BarChart,
@@ -176,69 +177,6 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-200 font-sans pb-12">
-      {/* Premium Header - Synchronized with Status Page */}
-      <header className="sticky top-0 z-50 bg-[#020617]/80 backdrop-blur-md border-b border-slate-800/60 px-6 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="size-15 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center">
-              <img
-                  src="https://multiinno.com/wp-content/uploads/2025/06/cropped-logo-e1748947128387.webp"
-                  alt="Logo"
-                  className="h-12 w-auto object-contain"
-                />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                CCTV NVR Monitoring System
-                <Badge
-                  variant="outline"
-                  className="text-[10px] h-4 bg-blue-500/10 border-blue-500/30 text-blue-400 uppercase tracking-wider px-1"
-                >
-                  North District
-                </Badge>
-              </h1>
-              <p className="text-[10px] text-slate-400 flex items-center gap-2">
-                Bangkok Metropolitan Administration
-                <span className="inline-block size-1 rounded-full bg-slate-600"></span>
-                Dashboard Overview
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-6">
-            <div className="hidden md:flex flex-col items-end text-[10px] space-y-0.5">
-              <span className="text-slate-500 uppercase tracking-widest font-bold">
-                Status Data
-              </span>
-              <span className="text-green-400 font-medium flex items-center gap-1.5">
-                <span className="size-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                Connected to Google Sheets
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => onPageChange("dashboard")}
-                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-md transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)]"
-              >
-                {/* <div className="size-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> */}
-                Dashboard
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onPageChange("status")}
-                className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/30 border-slate-700/50 text-slate-300 hover:text-white hover:bg-slate-700/50 text-xs font-semibold rounded-md transition-all"
-              >
-                <div className="size-1.5 rounded-full bg-white/60 animate-pulse" />
-                Status NVR
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-8 space-y-8">
         {/* Page Title & Time */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pt-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -324,7 +262,11 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 {stats.problemNVR.toLocaleString()}
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                Minor technical warnings
+                {/* Minor technical warnings */}
+                {stats.problemNVR > 0
+                  ? ((stats.problemNVR / stats.totalNVR) * 100).toFixed(1)
+                  : 0}
+                % of total issues
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
@@ -347,7 +289,13 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 {stats.criticalNVRs.length.toLocaleString()}
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                Priority intervention required
+                {stats.problemNVR > 0
+                  ? (
+                      (stats.criticalNVRs.length / stats.problemNVR) *
+                      100
+                    ).toFixed(1)
+                  : 0}
+                % of critical issues
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
@@ -439,6 +387,8 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                       paddingAngle={3}
                       dataKey="value"
                       stroke="none"
+                      cornerRadius={5}
+                      minAngle={6}
                     >
                       {chartData.statusData.map((entry, index) => (
                         <Cell
@@ -509,19 +459,27 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                         paddingAngle={4}
                         dataKey="value"
                         stroke="none"
+                        cornerRadius={3}
+                        minAngle={2}
                       >
                         {chartData.issueData.map((entry, index) => (
                           <Cell key={`cell-issue-${index}`} fill={entry.fill} />
                         ))}
                       </Pie>
                       <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#0f172a",
-                        border: "1px solid #1e293b",
-                        borderRadius: "12px",
-                      }}
-                      itemStyle={{ color: "#fff", fontSize: "12px" }}
-                    /> 
+                        contentStyle={{
+                          backgroundColor: "#0f172a",
+                          border: "1px solid #1e293b",
+                          borderRadius: "12px",
+                        }}
+                        itemStyle={{ color: "#fff", fontSize: "12px" }}
+                        // formatter={(value: number) => {
+                        //   const percent = issusData
+                        //   ? ((value / ) *100).toFixed(1)
+                        //   : 0;
+                        //   return [`${value} (${percent}%)`, "Count"];
+                        // }}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
