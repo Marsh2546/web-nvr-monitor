@@ -11,7 +11,7 @@ Run `npm run dev` to start the development server.
 [x] เอาเว็บขึ้น docker
 [x] ออกแบบฐ้านข้อมูลจัดเก็บข้อมูล time series
 [x] แก้ไข Pie chart ให้ขอบมน
-[] Map ข้อมูลให้ดึงข้อมูลได้เร็วขึ้น
+[X] Map ข้อมูลให้ดึงข้อมูลได้เร็วขึ้น
 [] Dashboard เพิ่มการแสดงดูข้อมูลย้อนหลัง
 [] แก้ไขการเพิ่ม sort by ข้อมูล
 [] เพิ่มปุ่มปรับโหลด light : Dark

@@ -128,16 +128,21 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
   // ✅ useMemo: Chart data
   const chartData = useMemo(() => {
     const statusData = [
-      { name: "ปกติ", value: stats.normalNVR, fill: "var(--chart-1)" },
-      { name: "มีปัญหา", value: stats.problemNVR, fill: "var(--destructive)" },
+      { name: "Healthy", value: stats.normalNVR, fill: "var(--chart-1)" },
+      { name: "Failure", value: stats.problemNVR, fill: "var(--destructive)" },
     ];
 
     const issueData = [
-      { name: "ONU Ping ไม่ได้", value: stats.pingOnuFail, fill: "#f43f5e" }, // rose-500
-      { name: "NVR Ping ไม่ได้", value: stats.pingNvrFail, fill: "#ef4444" }, // red-500
+      // { value: stats.pingOnuFail, fill: "#f43f5e" }, // rose-500
+      // { value: stats.pingNvrFail, fill: "#ef4444" }, // red-500
+      // { value: stats.hddFail, fill: "#f97316" }, // orange-500
+      // { value: stats.viewFail, fill: "#eab308" }, // yellow-500
+      // { value: stats.loginFail, fill: "#84cc16" }, // lime-500
+      { name: "OUN PING ไม่ได้", value: stats.pingOnuFail, fill: "#f43f5e" }, // rose-500
+      { name: "NVR PING ไม่ได้", value: stats.pingNvrFail, fill: "#ef4444" }, // red-500
       { name: "HDD มีปัญหา", value: stats.hddFail, fill: "#f97316" }, // orange-500
       { name: "แสดงภาพผิดปกติ", value: stats.viewFail, fill: "#eab308" }, // yellow-500
-      { name: "Login ไม่ได้", value: stats.loginFail, fill: "#84cc16" }, // lime-500
+      { name: "LOGIN ไม่ได้", value: stats.loginFail, fill: "#84cc16" }, // lime-500
     ].filter((item) => item.value > 0);
 
     const districtData = nvrWithIssues.reduce(
