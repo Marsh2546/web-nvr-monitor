@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { NVRDashboard } from "@/app/components/NVRDashboard";
-import { NVRStatusPage } from "@/app/components/NVRStatusPage";
+import { ReactNode } from "react";
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
 import {
@@ -14,11 +13,11 @@ import { Toaster } from "@/app/components/ui/sonner";
 import { toast } from "sonner";
 import { fetchNVRStatus } from "@/app/services/nvrService";
 import { NVRStatus } from "@/app/types/nvr";
-
-type Page = "dashboard" | "status";
+import { PageRegistry } from "@/app/components/PageRegistry";
+import { PageName, PageWrapperProps } from "@/app/components/PageWrappers";
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<Page>("dashboard");
+  const [currentPage, setCurrentPage] = useState<PageName>("dashboard");
   const [nvrData, setNVRData] = useState<NVRStatus[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [useGoogleSheets, setUseGoogleSheets] = useState(false);
@@ -83,7 +82,10 @@ export default function App() {
       className={`${theme} min-h-screen bg-background transition-colors duration-300`}
     >
       {/* Premium Header - Shared across Dashboard and Status pages */}
-      {(currentPage === "dashboard" || currentPage === "status") && (
+      {(() => {
+        const validPages = PageRegistry.getPageNames();
+        return validPages.includes(currentPage);
+      })() && (
         <header className="sticky top-0 z-50 bg-[#020617]/80 backdrop-blur-md border-b border-slate-800/60 px-6 py-3">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -107,9 +109,10 @@ export default function App() {
                 <p className="text-[10px] text-slate-400 flex items-center gap-2">
                   Bangkok Metropolitan Administration
                   <span className="inline-block size-1 rounded-full bg-slate-600"></span>
-                  {currentPage === "dashboard"
-                    ? "Dashboard Overview"
-                    : "Status NVR Details"}
+                  {(() => {
+                    const PageClass = PageRegistry.getPage(currentPage);
+                    return PageClass ? PageClass.getDisplayName() : "Unknown Page";
+                  })()}
                 </p>
               </div>
             </div>
@@ -125,34 +128,39 @@ export default function App() {
                 </span>
               </div>
               <div className="flex gap-2">
-                <Button
-                  variant={currentPage === "dashboard" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setCurrentPage("dashboard")}
-                  className={
-                    currentPage === "dashboard"
-                      ? "flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-md transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)]"
-                      : "flex items-center gap-2 px-3 py-1.5 bg-slate-800/30 border-slate-700/50 text-slate-300 hover:text-white hover:bg-slate-700/50 text-xs font-semibold rounded-md transition-all"
-                  }
-                >
-                  <LayoutDashboard className="size-3.5" />
-                  Dashboard
-                </Button>
-                <Button
-                  variant={currentPage === "status" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setCurrentPage("status")}
-                  className={
-                    currentPage === "status"
-                      ? "flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-md transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)]"
-                      : "flex items-center gap-2 px-3 py-1.5 bg-slate-800/30 border-slate-700/50 text-slate-300 hover:text-white hover:bg-slate-700/50 text-xs font-semibold rounded-md transition-all"
-                  }
-                >
-                  {currentPage !== "status" && (
-                    <div className="size-1.5 rounded-full bg-white/60 animate-pulse" />
-                  )}
-                  Status NVR
-                </Button>
+                {(() => {
+                  const allPages = PageRegistry.getAllPages();
+                  const buttons: ReactNode[] = [];
+                  
+                  allPages.forEach((PageClass, pageName) => {
+                    const isActive = currentPage === pageName;
+                    const isDashboard = pageName === "dashboard";
+                    const isStatus = pageName === "status";
+                    
+                    buttons.push(
+                      <Button
+                        key={pageName}
+                        variant={isActive ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageName)}
+                        className={
+                          isActive
+                            ? "flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-md transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)]"
+                            : "flex items-center gap-2 px-3 py-1.5 bg-slate-800/30 border-slate-700/50 text-slate-300 hover:text-white hover:bg-slate-700/50 text-xs font-semibold rounded-md transition-all"
+                        }
+                      >
+                        {isDashboard && <LayoutDashboard className="size-3.5" />}
+                        {isStatus && <ClipboardList className="size-3.5" />}
+                        {PageClass.getDisplayName()}
+                        {!isStatus && (
+                          <div className="size-1.5 rounded-full bg-white/60 animate-pulse" />
+                        )}
+                      </Button>
+                    );
+                  });
+                  
+                  return buttons;
+                })()}
               </div>
             </div>
           </div>
@@ -160,7 +168,10 @@ export default function App() {
       )}
 
       {/* Navigation Bar - For other pages */}
-      {currentPage !== "dashboard" && currentPage !== "status" && (
+      {(() => {
+        const validPages = PageRegistry.getPageNames();
+        return !validPages.includes(currentPage);
+      })() && (
         <nav className="bg-card border-b border-border sticky top-0 z-50 shadow-sm">
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
@@ -180,22 +191,30 @@ export default function App() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage("dashboard")}
-                  className="flex items-center gap-2"
-                >
-                  <LayoutDashboard className="size-4" />
-                  Dashboard
-                </Button>
-                <Button
-                  variant="default"
-                  onClick={() => setCurrentPage("status")}
-                  className="flex items-center gap-2"
-                >
-                  <ClipboardList className="size-4" />
-                  Status NVR
-                </Button>
+                {(() => {
+                  const allPages = PageRegistry.getAllPages();
+                  const buttons: ReactNode[] = [];
+                  
+                  allPages.forEach((PageClass, pageName) => {
+                    const isDashboard = pageName === "dashboard";
+                    const isStatus = pageName === "status";
+                    
+                    buttons.push(
+                      <Button
+                        key={pageName}
+                        variant={pageName === "status" ? "default" : "outline"}
+                        onClick={() => setCurrentPage(pageName)}
+                        className="flex items-center gap-2"
+                      >
+                        {isDashboard && <LayoutDashboard className="size-4" />}
+                        {isStatus && <ClipboardList className="size-4" />}
+                        {PageClass.getDisplayName()}
+                      </Button>
+                    );
+                  });
+                  
+                  return buttons;
+                })()}
               </div>
             </div>
 
@@ -256,16 +275,17 @@ export default function App() {
 
       {/* Page Content */}
       <main className="min-h-[calc(100vh-5rem)]">
-        {currentPage === "dashboard" && (
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <NVRDashboard nvrList={nvrData} onPageChange={setCurrentPage} />
-          </div>
-        )}
-        {currentPage === "status" && (
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <NVRStatusPage nvrList={nvrData} onPageChange={setCurrentPage} />
-          </div>
-        )}
+        {(() => {
+          const PageClass = PageRegistry.getPage(currentPage);
+          if (!PageClass) return null;
+          
+          const pageProps: PageWrapperProps = {
+            nvrList: nvrData,
+            onPageChange: setCurrentPage,
+          };
+          
+          return PageClass.render(pageProps);
+        })()}
       </main>
 
       {/* Footer */}

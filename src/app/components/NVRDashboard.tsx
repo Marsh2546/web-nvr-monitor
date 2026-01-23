@@ -571,12 +571,14 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 />
                 <Bar
                   dataKey="normal"
+                  name="Healthy"
                   fill="#3b82f6"
                   radius={[4, 4, 0, 0]}
                   barSize={24}
                 />
                 <Bar
                   dataKey="problem"
+                  name="Failing"
                   fill="#f43f5e"
                   radius={[4, 4, 0, 0]}
                   barSize={24}
