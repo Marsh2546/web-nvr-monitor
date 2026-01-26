@@ -130,7 +130,6 @@ export default function App() {
                 {(() => {
                   const allPages = PageRegistry.getAllPages();
                   const buttons = [];
-                  let index = 0;
                   
                   allPages.forEach((PageClass, pageName) => {
                     const isActive = currentPage === pageName;
@@ -152,9 +151,9 @@ export default function App() {
                         {isDashboard && <LayoutDashboard className="size-3.5" />}
                         {isStatus && <ClipboardList className="size-3.5" />}
                         {PageClass.getDisplayName()}
-                        {!isStatus && (
+                        {/* {!isStatus && (
                           <div className="size-1.5 rounded-full bg-white/60 animate-pulse" />
-                        )}
+                        )} */}
                       </Button>
                     );
                   });
@@ -167,114 +166,8 @@ export default function App() {
         </header>
       )}
 
-      {/* Navigation Bar - For other pages */}
-      {(() => {
-        const validPages = PageRegistry.getPageNames();
-        return !validPages.includes(currentPage);
-      })() && (
-        <nav className="bg-card border-b border-border sticky top-0 z-50 shadow-sm">
-          <div className="container mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <img
-                  src="https://multiinno.com/wp-content/uploads/2025/06/cropped-logo-e1748947128387.webp"
-                  alt="Logo"
-                  className="h-12 w-auto object-contain"
-                />
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">
-                    CCTV NVR Monitoring System
-                  </h1>
-                  <p className="text-sm text-muted-foreground">
-                    Bangkok CCTV NVR Monitoring System
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                {(() => {
-                  const allPages = PageRegistry.getAllPages();
-                  const buttons = [];
-                  
-                  allPages.forEach((PageClass, pageName) => {
-                    const isDashboard = pageName === "dashboard";
-                    const isStatus = pageName === "status";
-                    
-                    buttons.push(
-                      <Button
-                        key={pageName}
-                        variant={pageName === "status" ? "default" : "outline"}
-                        onClick={() => setCurrentPage(pageName)}
-                        className="flex items-center gap-2"
-                      >
-                        {isDashboard && <LayoutDashboard className="size-4" />}
-                        {isStatus && <ClipboardList className="size-4" />}
-                        {PageClass.getDisplayName()}
-                      </Button>
-                    );
-                  });
-                  
-                  return buttons;
-                })()}
-              </div>
-            </div>
-
-            {/* Data Source Controls */}
-            <div className="mt-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {isLoading && !lastUpdated ? (
-                  <div className="flex items-center gap-2 text-sm text-primary animate-pulse">
-                    <RefreshCw className="size-4 animate-spin" />
-                    <span>กำลังอัปเดตข้อมูลอัตโนมัติ...</span>
-                  </div>
-                ) : null}
-
-                {lastUpdated && (
-                  <span className="text-sm text-muted-foreground">
-                    อัปเดตล่าสุด: {lastUpdated}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-                  className="text-muted-foreground"
-                >
-                  {theme === "light" ? "🌙 light" : "☀️ dark"}
-                </Button>
-
-                {useGoogleSheets && !error && (
-                  <span className="text-sm text-green-500 font-medium">
-                    ● เชื่อมต่อ Google Sheets
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Error Display */}
-            {error && (
-              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-                <AlertCircle className="size-5 text-red-600 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-red-900">
-                    ไม่สามารถเชื่อมต่อ Google Sheets
-                  </p>
-                  <p className="text-sm text-red-700 mt-1">{error}</p>
-                  <p className="text-xs text-red-600 mt-2">
-                    กรุณาตรวจสอบว่าได้ตั้งค่า GOOGLE_SHEET_ID และ
-                    GOOGLE_SHEETS_API_KEY แล้ว
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </nav>
-      )}
-
-      {/* Page Content */}
-      <main className="min-h-[calc(100vh-5rem)]">
+      {/* Main Content */}
+      <main className="flex-1">
         {(() => {
           const PageClass = PageRegistry.getPage(currentPage);
           if (!PageClass) return null;
@@ -292,10 +185,7 @@ export default function App() {
       <footer className="bg-card border-t border-border mt-12">
         <div className="container mx-auto px-6 py-6">
           <p className="text-center text-sm text-muted-foreground">
-            {useGoogleSheets
-              ? `ข้อมูลจาก Google Sheets | ${nvrData.length} รายการ`
-              : `ข้อมูลตัวอย่าง | ${nvrData.length} รายการ`}{" "}
-            | วันที่:{" "}
+            ข้อมูลจาก Database | {nvrData.length} รายการ | วันที่:{" "}
             {new Date().toLocaleDateString("th-TH", {
               year: "numeric",
               month: "long",
