@@ -55,7 +55,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
   const [selectedDistrict, setSelectedDistrict] = useState<string>("all");
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(50);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   // Get unique districts
   const districts = Array.from(

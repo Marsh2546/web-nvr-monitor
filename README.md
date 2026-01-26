@@ -15,6 +15,7 @@ Run `npm run dev` to start the development server.
 [] Dashboard เพิ่มการแสดงดูข้อมูลย้อนหลัง
 [] แก้ไขการเพิ่ม sort by ข้อมูล
 [] เพิ่มปุ่มปรับโหลด light : Dark
+[] optimize code
 
 # ถ้าสามารถดึงรูปภาพ และ ตำแหน่งได้
 [] เพิ่ม Ai Detection image

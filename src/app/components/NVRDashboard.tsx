@@ -138,8 +138,8 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
       // { value: stats.hddFail, fill: "#f97316" }, // orange-500
       // { value: stats.viewFail, fill: "#eab308" }, // yellow-500
       // { value: stats.loginFail, fill: "#84cc16" }, // lime-500
-      { name: "ONU Connectivity Issue", value: stats.pingOnuFail, fill: "#f43f5e" }, // rose-500
-      { name: "NVR Connectivity Issue", value: stats.pingNvrFail, fill: "#ef4444" }, // red-500
+      { name: "ONU Connectivity Issue",value: stats.pingOnuFail,fill: "#f43f5e",}, // rose-500
+      { name: "NVR Connectivity Issue",value: stats.pingNvrFail,fill: "#ef4444",}, // red-500
       { name: "HDD Storage Issue", value: stats.hddFail, fill: "#f97316" }, // orange-500
       { name: "Video Display Issue", value: stats.viewFail, fill: "#eab308" }, // yellow-500
       { name: "Login Access Issue", value: stats.loginFail, fill: "#84cc16" }, // lime-500
@@ -182,7 +182,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-200 font-sans pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-4 lg:px-6 pt-0 pb-8 space-y-8">
         {/* Page Title & Time */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pt-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
           <div>
@@ -403,6 +403,8 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                       ))}
                     </Pie>
                     <Tooltip
+                      isAnimationActive
+                      animationDuration={200}
                       contentStyle={{
                         backgroundColor: "#0f172a",
                         border: "1px solid #1e293b",
@@ -472,6 +474,8 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                         ))}
                       </Pie>
                       <Tooltip
+                        isAnimationActive
+                        animationDuration={200}
                         contentStyle={{
                           backgroundColor: "#0f172a",
                           border: "1px solid #1e293b",
@@ -565,6 +569,8 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                   tick={{ fill: "#64748b", fontSize: 10, fontWeight: 600 }}
                 />
                 <Tooltip
+                  isAnimationActive
+                  animationDuration={200}
                   cursor={{ fill: "rgba(255,255,255,0.03)" }}
                   contentStyle={{
                     backgroundColor: "#0f172a",
