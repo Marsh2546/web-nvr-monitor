@@ -21,18 +21,8 @@ export interface NVRStatusHistory {
 
 export async function fetchNVRStatusHistory(date: string): Promise<NVRStatus[]> {
   try {
-    // Debug timezone information
+    // Parse date and create range for the entire day
     const targetDate = new Date(date);
-    const localDate = new Date(date);
-    const utcDate = new Date(date);
-    
-    console.log('=== TIMEZONE DEBUG ===');
-    console.log('Input date string:', date);
-    console.log('Target date (local):', localDate.toString());
-    console.log('Target date (UTC):', utcDate.toUTCString());
-    console.log('Target date (ISO):', targetDate.toISOString());
-    
-    // Create date range in local timezone (UTC+7 for Thailand)
     const year = targetDate.getFullYear();
     const month = targetDate.getMonth();
     const day = targetDate.getDate();
@@ -40,12 +30,6 @@ export async function fetchNVRStatusHistory(date: string): Promise<NVRStatus[]> 
     // Create start and end of day in local timezone, then convert to UTC
     const startOfDay = new Date(year, month, day, 0, 0, 0);
     const endOfDay = new Date(year, month, day + 1, 0, 0, 0);
-    
-    console.log('Start of day (local):', startOfDay.toString());
-    console.log('Start of day (UTC):', startOfDay.toUTCString());
-    console.log('End of day (local):', endOfDay.toString());
-    console.log('End of day (UTC):', endOfDay.toUTCString());
-    console.log('===================');
     
     // First get the count to see how many records exist
     const { count, error: countError } = await supabase
@@ -87,14 +71,6 @@ export async function fetchNVRStatusHistory(date: string): Promise<NVRStatus[]> 
       if (data && data.length > 0) {
         allData.push(...data)
         console.log(`Fetched page ${page + 1}: ${data.length} records`)
-        
-        // Show sample recorded_at values
-        if (page === 0 && data.length > 0) {
-          console.log('Sample recorded_at values from database:');
-          data.slice(0, 3).forEach((item, index) => {
-            console.log(`  ${index + 1}. ${item.recorded_at}`);
-          });
-        }
       }
 
       // If we got less than pageSize, we're done

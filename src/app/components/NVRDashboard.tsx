@@ -2,6 +2,7 @@
 // NVRDashboard.tsx - Optimized Version
 // ==========================================
 
+import { useState, useRef, useEffect, useMemo } from "react";
 import { NVRStatus } from "@/app/types/nvr";
 import {
   Card,
@@ -12,6 +13,7 @@ import {
 } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
+import { cn } from "@/app/components/ui/utils";
 import {
   Server,
   CheckCircle,
@@ -37,8 +39,39 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { useState, useEffect, useMemo } from "react";
-import { cn } from "@/lib/utils"; // Assuming cn is available for cleaner classes
+
+// Animated Number Component
+const AnimatedNumber = ({ value, duration = 1000 }: { value: number; duration?: number }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+  const prevValueRef = useRef(0);
+
+  useEffect(() => {
+    const startValue = prevValueRef.current;
+    const endValue = value;
+    const startTime = Date.now();
+
+    const animate = () => {
+      const now = Date.now();
+      const progress = Math.min((now - startTime) / duration, 1);
+      
+      // Easing function for smooth animation
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      const currentValue = Math.round(startValue + (endValue - startValue) * easeOutQuart);
+      
+      setDisplayValue(currentValue);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        prevValueRef.current = endValue;
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [value, duration]);
+
+  return <>{displayValue.toLocaleString()}</>;
+};
 
 interface NVRDashboardProps {
   nvrList: NVRStatus[];
@@ -215,7 +248,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
             </div>
             <div>
               <div className="text-3xl font-extrabold text-white mb-0.5">
-                {stats.totalNVR.toLocaleString()}
+                <AnimatedNumber value={stats.totalNVR} />
               </div>
               <p className="text-xs text-slate-500 font-medium">
                 Registered NVR Devices
@@ -238,13 +271,13 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
             </div>
             <div>
               <div className="text-3xl font-extrabold text-white mb-0.5">
-                {stats.normalNVR.toLocaleString()}
+                <AnimatedNumber value={stats.normalNVR} />
               </div>
               <p className="text-xs text-slate-500 font-medium">
                 {stats.totalNVR > 0
                   ? ((stats.normalNVR / stats.totalNVR) * 100).toFixed(1)
                   : 0}
-                % of total infrastructure
+                % Operational
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
@@ -264,14 +297,13 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
             </div>
             <div>
               <div className="text-3xl font-extrabold text-white mb-0.5">
-                {stats.problemNVR.toLocaleString()}
+                <AnimatedNumber value={stats.problemNVR} />
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                {/* Minor technical warnings */}
-                {stats.problemNVR > 0
+                {stats.totalNVR > 0
                   ? ((stats.problemNVR / stats.totalNVR) * 100).toFixed(1)
                   : 0}
-                % of total issues
+                % Need Attention
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
@@ -291,16 +323,13 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
             </div>
             <div>
               <div className="text-3xl font-extrabold text-white mb-0.5">
-                {stats.criticalNVRs.length.toLocaleString()}
+                <AnimatedNumber value={stats.criticalNVRs.length} />
               </div>
               <p className="text-xs text-slate-500 font-medium">
                 {stats.problemNVR > 0
-                  ? (
-                      (stats.criticalNVRs.length / stats.problemNVR) *
-                      100
-                    ).toFixed(1)
+                  ? ((stats.criticalNVRs.length / stats.problemNVR) * 100).toFixed(1)
                   : 0}
-                % of critical issues
+                % Critical
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
@@ -416,7 +445,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <span className="text-2xl font-black text-white">
-                    {stats.totalNVR.toLocaleString()}
+                    <AnimatedNumber value={stats.totalNVR} />
                   </span>
                   <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
                     Total Units
@@ -676,8 +705,8 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
         {/* --- Footer --- */}
         <footer className="mt-4 pb-4 text-center">
           <p className="text-[10px] text-slate-500 font-medium tracking-wide">
-            Data provided via Google Sheets API | Total{" "}
-            {stats.totalNVR.toLocaleString()} Nodes | Date:{" "}
+            Data provided via Database | Total{" "}
+            <AnimatedNumber value={stats.totalNVR} /> Nodes | Date:{" "}
             {new Date().toLocaleDateString("en-US", {
               month: "long",
               day: "2-digit",

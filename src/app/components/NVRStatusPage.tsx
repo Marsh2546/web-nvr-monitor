@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { NVRStatus } from "@/app/types/nvr";
-import { fetchNVRStatusHistory, fetchAllNVRHistory } from "@/app/services/nvrHistoryService";
+import { fetchNVRStatusHistory } from "@/app/services/nvrHistoryService";
 import {
   Card,
   CardContent,
@@ -10,7 +10,8 @@ import {
 } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Input } from "@/app/components/ui/input";
-import { cn } from "@/app/components/ui/utils";
+import { Button } from "@/app/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -18,37 +19,69 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
+import { cn } from "@/app/components/ui/utils";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/app/components/ui/tabs";
-import { Button } from "@/app/components/ui/button";
-import {
-  Search,
-  AlertCircle,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Server,
-  HardDrive,
-  Eye,
-  LogIn,
-  Wifi,
-  Clock,
-  Camera,
   ChevronDown,
   ChevronUp,
   ChevronLeft,
   ChevronRight,
+  Search,
+  Filter,
+  Calendar,
+  Server,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  AlertCircle,
+  Wifi,
+  WifiOff,
+  HardDrive,
+  Camera,
+  User,
+  MapPin,
+  Eye,
+  EyeOff,
+  LogIn,
+  Clock,
   ChevronsLeft,
   ChevronsRight,
-  Calendar,
 } from "lucide-react";
 import { DayPicker } from "react-day-picker";
-import { format } from "date-fns";
 import { th } from "date-fns/locale";
+import { format, addMonths, subMonths } from "date-fns";
+
+// Animated Number Component
+const AnimatedNumber = ({ value, duration = 1000 }: { value: number; duration?: number }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+  const prevValueRef = useRef(0);
+
+  useEffect(() => {
+    const startValue = prevValueRef.current;
+    const endValue = value;
+    const startTime = Date.now();
+
+    const animate = () => {
+      const now = Date.now();
+      const progress = Math.min((now - startTime) / duration, 1);
+      
+      // Easing function for smooth animation
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      const currentValue = Math.round(startValue + (endValue - startValue) * easeOutQuart);
+      
+      setDisplayValue(currentValue);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        prevValueRef.current = endValue;
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [value, duration]);
+
+  return <>{displayValue.toLocaleString()}</>;
+};
 
 interface NVRStatusPageProps {
   nvrList: NVRStatus[];
@@ -113,23 +146,13 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
       setSupabaseError(null);
       
       try {
-        console.log('=== NVRStatusPage Date Debug ===');
-        console.log('selectedDate object:', selectedDate);
-        console.log('selectedDate.toString():', selectedDate.toString());
-        console.log('selectedDate.toISOString():', selectedDate.toISOString());
-        
         // Use local date format instead of UTC to avoid timezone issues
         const year = selectedDate.getFullYear();
         const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
         const day = String(selectedDate.getDate()).padStart(2, '0');
         const dateString = `${year}-${month}-${day}`;
         
-        console.log('Final dateString sent to service:', dateString);
-        console.log('================================');
-        
         const data = await fetchNVRStatusHistory(dateString);
-        console.log('Fetched data count:', data.length);
-        
         setSupabaseData(data);
       } catch (error) {
         console.error('Error fetching Supabase data:', error);
@@ -141,6 +164,32 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
 
     fetchSupabaseData();
   }, [selectedDate]);
+
+  // Initial load on component mount
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      setIsLoadingSupabase(true);
+      setSupabaseError(null);
+      
+      try {
+        // Use today's date for initial load
+        const year = selectedDate.getFullYear();
+        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+        const day = String(selectedDate.getDate()).padStart(2, '0');
+        const dateString = `${year}-${month}-${day}`;
+        
+        const data = await fetchNVRStatusHistory(dateString);
+        setSupabaseData(data);
+      } catch (error) {
+        console.error('Error fetching initial Supabase data:', error);
+        setSupabaseError('Failed to fetch data from Supabase');
+      } finally {
+        setIsLoadingSupabase(false);
+      }
+    };
+
+    fetchInitialData();
+  }, []); // Empty dependency array means this runs only once on mount
 
   // Get unique districts from Supabase data
   const districts = Array.from(
@@ -746,28 +795,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
           />
         )}
 
-        {/* Loading State */}
-        {isLoadingSupabase && (
-          <div className="flex items-center justify-center py-8">
-            <div className="flex items-center gap-3 bg-slate-900/40 px-6 py-3 rounded-xl border border-slate-800/60">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-              <span className="text-slate-300">Loading NVR data from Supabase...</span>
-            </div>
-          </div>
-        )}
-
-        {/* Error State */}
-        {supabaseError && (
-          <div className="flex items-center justify-center py-8">
-            <div className="flex items-center gap-3 bg-red-900/20 px-6 py-3 rounded-xl border border-red-800/60">
-              <AlertCircle className="size-5 text-red-500" />
-              <span className="text-red-300">{supabaseError}</span>
-            </div>
-          </div>
-        )}
-
         {/* Summary Cards - Synchronized with Dashboard */}
-        {!isLoadingSupabase && !supabaseError && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Units */}
           <div className="bg-[#0f172a] p-5 rounded-2xl border border-slate-800/50 flex flex-col justify-between relative overflow-hidden group">
@@ -781,10 +809,10 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
             </div>
             <div>
               <div className="text-3xl font-extrabold text-white mb-0.5">
-                {summaryStats.total.toLocaleString()}
+                <AnimatedNumber value={summaryStats.total} />
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                Registered NVR Devices
+                Total NVR units
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-5 grayscale group-hover:grayscale-0 transition-all">
@@ -804,15 +832,13 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
             </div>
             <div>
               <div className="text-3xl font-extrabold text-white mb-0.5">
-                {summaryStats.healthy.toLocaleString()}
+                <AnimatedNumber value={summaryStats.healthy} />
               </div>
               <p className="text-xs text-slate-500 font-medium">
                 {summaryStats.total > 0
-                  ? ((summaryStats.healthy / summaryStats.total) * 100).toFixed(
-                      1,
-                    )
+                  ? ((summaryStats.healthy / summaryStats.total) * 100).toFixed(1)
                   : 0}
-                % of total infrastructure
+                % of total units
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
@@ -832,16 +858,13 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
             </div>
             <div>
               <div className="text-3xl font-extrabold text-white mb-0.5">
-                {summaryStats.attention.toLocaleString()}
+                <AnimatedNumber value={summaryStats.attention} />
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                {/* Minor technical warnings */}
                 {summaryStats.total > 0
-                  ? ((summaryStats.attention / summaryStats.total) * 100).toFixed(
-                      1,
-                    )
+                  ? ((summaryStats.attention / summaryStats.total) * 100).toFixed(1)
                   : 0}
-                % of total issues
+                % of total units
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
@@ -861,7 +884,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
             </div>
             <div>
               <div className="text-3xl font-extrabold text-white mb-0.5">
-                {summaryStats.critical.toLocaleString()}
+                <AnimatedNumber value={summaryStats.critical} />
               </div>
               <p className="text-xs text-slate-500 font-medium">
                 {/* Priority intervention required */}
@@ -878,10 +901,8 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
             </div>
           </div>
         </div>
-        )}
 
         {/* Filters & Content */}
-        {!isLoadingSupabase && !supabaseError && (
         <Tabs defaultValue="all" className="space-y-6">
           <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-slate-900/40 p-2 rounded-2xl border border-slate-800/60 backdrop-blur-sm">
             <TabsList className="bg-slate-950/50 p-1 border border-slate-800/50 rounded-xl h-12">
@@ -971,7 +992,6 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
             <Pagination items={normalNVRs} label="healthy units" />
           </TabsContent>
         </Tabs>
-        )}
       </div>
     </div>
   );
