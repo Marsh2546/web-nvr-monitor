@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { NVRStatus } from "@/app/types/nvr";
+import { fetchNVRStatusHistory, fetchAllNVRHistory } from "@/app/services/nvrHistoryService";
 import {
   Card,
   CardContent,
@@ -43,12 +44,17 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Calendar,
 } from "lucide-react";
+import { DayPicker } from "react-day-picker";
+import { format } from "date-fns";
+import { th } from "date-fns/locale";
 
 interface NVRStatusPageProps {
   nvrList: NVRStatus[];
   onPageChange: (page: "dashboard" | "status") => void;
 }
+
 
 export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -56,10 +62,89 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
+  
+  // Supabase states
+  const [supabaseData, setSupabaseData] = useState<NVRStatus[]>([]);
+  const [isLoadingSupabase, setIsLoadingSupabase] = useState(false);
+  const [supabaseError, setSupabaseError] = useState<string | null>(null);
+  
+  const today = new Date();
+  const [selectedDate, setSelectedDate] = useState<Date>(today);
+  const formatThaiDate = (date: Date) => {
+    const thaiDays = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+    const thaiMonths = [
+      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ];
+    
+    const day = date.getDate();
+    const month = thaiMonths[date.getMonth()];
+    const year = date.getFullYear() + 543; // แปลงเป็นพ.ศ.
+    
+    return `${day} ${month} ${year}`;
+  };
 
-  // Get unique districts
+  // Calculate popup position
+  const updatePopupPosition = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPopupPosition({
+        top: rect.bottom + window.scrollY + 8,
+        left: rect.right - 250 + window.scrollX // 250px is approximate calendar width
+      });
+    }
+  };
+
+  const handleToggleDatePicker = () => {
+    if (!showDatePicker) {
+      updatePopupPosition();
+    }
+    setShowDatePicker(!showDatePicker);
+  };
+
+  // Fetch data from Supabase when date changes
+  useEffect(() => {
+    const fetchSupabaseData = async () => {
+      setIsLoadingSupabase(true);
+      setSupabaseError(null);
+      
+      try {
+        console.log('=== NVRStatusPage Date Debug ===');
+        console.log('selectedDate object:', selectedDate);
+        console.log('selectedDate.toString():', selectedDate.toString());
+        console.log('selectedDate.toISOString():', selectedDate.toISOString());
+        
+        // Use local date format instead of UTC to avoid timezone issues
+        const year = selectedDate.getFullYear();
+        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+        const day = String(selectedDate.getDate()).padStart(2, '0');
+        const dateString = `${year}-${month}-${day}`;
+        
+        console.log('Final dateString sent to service:', dateString);
+        console.log('================================');
+        
+        const data = await fetchNVRStatusHistory(dateString);
+        console.log('Fetched data count:', data.length);
+        
+        setSupabaseData(data);
+      } catch (error) {
+        console.error('Error fetching Supabase data:', error);
+        setSupabaseError('Failed to fetch data from Supabase');
+      } finally {
+        setIsLoadingSupabase(false);
+      }
+    };
+
+    fetchSupabaseData();
+  }, [selectedDate]);
+
+  // Get unique districts from Supabase data
   const districts = Array.from(
-    new Set(nvrList.map((nvr) => nvr.district)),
+    new Set(supabaseData.map((nvr) => nvr.district)),
   ).sort();
 
   // Check if NVR has any issues
@@ -95,14 +180,13 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     setExpandedRows(newExpanded);
   };
 
-  // Filter NVR list
-  const filteredNVRList = nvrList.filter((nvr) => {
+  // Filter NVR list from Supabase data
+  const filteredNVRList = supabaseData.filter((nvr) => {
     const matchesSearch =
       nvr.nvr.toLowerCase().includes(searchTerm.toLowerCase()) ||
       nvr.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
       nvr.district.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDistrict =
-      selectedDistrict === "all" || nvr.district === selectedDistrict;
+    const matchesDistrict = selectedDistrict === "all" || nvr.district === selectedDistrict;
     return matchesSearch && matchesDistrict;
   });
 
@@ -111,10 +195,10 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
 
   // Calculate summary stats for the cards
   const summaryStats = {
-    total: nvrList.length,
-    healthy: nvrList.filter((nvr) => !hasIssues(nvr)).length,
-    attention: nvrList.filter((nvr) => hasIssues(nvr)).length,
-    critical: nvrList.filter((nvr) => getIssueCount(nvr) >= 2).length,
+    total: supabaseData.length,
+    healthy: supabaseData.filter((nvr) => !hasIssues(nvr)).length,
+    attention: supabaseData.filter((nvr) => hasIssues(nvr)).length,
+    critical: supabaseData.filter((nvr) => getIssueCount(nvr) >= 2).length,
   };
 
   // Pagination calculations
@@ -594,9 +678,96 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
               district nodes.
             </p>
           </div>
+          <div className="flex items-center gap-3 bg-slate-900/40 px-4 py-2 rounded-xl border border-slate-800/60 backdrop-blur-sm relative">
+            <label className="text-xs font-mono text-slate-300">Date:</label>
+            <button
+              ref={buttonRef}
+              onClick={handleToggleDatePicker}
+              className="text-xs font-mono text-slate-300 hover:text-blue-400 transition-colors cursor-pointer flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700/50 hover:bg-slate-700/50"
+            >
+              <Calendar className="size-3.5" />
+              {formatThaiDate(selectedDate)}
+            </button>
+          </div>
         </div>
 
+        {/* Calendar Popup - Fixed Position */}
+        {showDatePicker && (
+          <div 
+            className="fixed bg-slate-900 border border-slate-700 rounded-lg shadow-xl p-4 z-[9999]"
+            style={{
+              top: `${popupPosition.top}px`,
+              left: `${popupPosition.left}px`,
+            }}
+          >
+            <DayPicker
+              mode="single"
+              selected={selectedDate}
+              onSelect={(date) => {
+                if (date) {
+                  setSelectedDate(date);
+                  setShowDatePicker(false);
+                }
+              }}
+              locale={th}
+              className="text-slate-200"
+              classNames={{
+                months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                month: "space-y-4",
+                caption: "flex justify-center pt-1 relative items-center",
+                caption_label: "text-sm font-medium text-slate-300",
+                nav: "space-x-1 flex items-center",
+                nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 text-slate-300",
+                nav_button_previous: "absolute left-1",
+                nav_button_next: "absolute right-1",
+                table: "w-full border-collapse space-y-1",
+                head_row: "flex",
+                head_cell: "text-slate-400 rounded-md w-9 font-normal text-[0.8rem]",
+                row: "flex w-full mt-2",
+                cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-slate-800/50 [&:has([aria-selected])]:bg-slate-700 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                day: "h-9 w-9 p-0 font-normal text-slate-300 hover:bg-slate-700 rounded-md",
+                day_range_end: "day-range-end",
+                day_selected: "bg-blue-600 text-white hover:bg-blue-600 focus:bg-blue-600",
+                day_today: "bg-slate-800 text-white",
+                day_outside: "day-outside text-slate-600 opacity-50",
+                day_disabled: "text-slate-500 opacity-50",
+                day_range_middle: "aria-selected:bg-slate-700 aria-selected:text-slate-300",
+                day_hidden: "invisible",
+              }}
+            />
+          </div>
+        )}
+        
+        {/* Close overlay when clicking outside */}
+        {showDatePicker && (
+          <div 
+            className="fixed inset-0 z-[9998]" 
+            onClick={() => setShowDatePicker(false)}
+          />
+        )}
+
+        {/* Loading State */}
+        {isLoadingSupabase && (
+          <div className="flex items-center justify-center py-8">
+            <div className="flex items-center gap-3 bg-slate-900/40 px-6 py-3 rounded-xl border border-slate-800/60">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+              <span className="text-slate-300">Loading NVR data from Supabase...</span>
+            </div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {supabaseError && (
+          <div className="flex items-center justify-center py-8">
+            <div className="flex items-center gap-3 bg-red-900/20 px-6 py-3 rounded-xl border border-red-800/60">
+              <AlertCircle className="size-5 text-red-500" />
+              <span className="text-red-300">{supabaseError}</span>
+            </div>
+          </div>
+        )}
+
         {/* Summary Cards - Synchronized with Dashboard */}
+        {!isLoadingSupabase && !supabaseError && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Units */}
           <div className="bg-[#0f172a] p-5 rounded-2xl border border-slate-800/50 flex flex-col justify-between relative overflow-hidden group">
@@ -707,8 +878,10 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
             </div>
           </div>
         </div>
+        )}
 
         {/* Filters & Content */}
+        {!isLoadingSupabase && !supabaseError && (
         <Tabs defaultValue="all" className="space-y-6">
           <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-slate-900/40 p-2 rounded-2xl border border-slate-800/60 backdrop-blur-sm">
             <TabsList className="bg-slate-950/50 p-1 border border-slate-800/50 rounded-xl h-12">
@@ -798,6 +971,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
             <Pagination items={normalNVRs} label="healthy units" />
           </TabsContent>
         </Tabs>
+        )}
       </div>
     </div>
   );

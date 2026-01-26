@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { ReactNode } from "react";
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
 import {
@@ -130,7 +129,8 @@ export default function App() {
               <div className="flex gap-2">
                 {(() => {
                   const allPages = PageRegistry.getAllPages();
-                  const buttons: ReactNode[] = [];
+                  const buttons = [];
+                  let index = 0;
                   
                   allPages.forEach((PageClass, pageName) => {
                     const isActive = currentPage === pageName;
@@ -152,6 +152,9 @@ export default function App() {
                         {isDashboard && <LayoutDashboard className="size-3.5" />}
                         {isStatus && <ClipboardList className="size-3.5" />}
                         {PageClass.getDisplayName()}
+                        {!isStatus && (
+                          <div className="size-1.5 rounded-full bg-white/60 animate-pulse" />
+                        )}
                       </Button>
                     );
                   });
@@ -190,7 +193,7 @@ export default function App() {
               <div className="flex gap-2">
                 {(() => {
                   const allPages = PageRegistry.getAllPages();
-                  const buttons: ReactNode[] = [];
+                  const buttons = [];
                   
                   allPages.forEach((PageClass, pageName) => {
                     const isDashboard = pageName === "dashboard";

@@ -21,3 +21,16 @@ Run `npm run dev` to start the development server.
 [] เพิ่ม Ai Detection image
 [] เพิ่มตำแหน่งกล้องบนแผนที่
 [] ดึงภาพจากฐานข้อมูลแสดงในรายละเอียดหน้า NVR Status
+
+# จัดการไฟล์ไม่ได้ใช้
+[] Dashbaoard.tsx
+[] Navigation.tsx
+[] StateCard.tsx
+[] StatusTracking.tsx
+[] AdminPage.tsx
+[] RepairList.tsx
+[] RepairStatusPage.tsx
+[] lib/Storeage.tsx
+[] types/repair.tsx
+[] app/types/repair.tsx
+[] app/data/mockData.tsx
