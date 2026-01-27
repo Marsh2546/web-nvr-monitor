@@ -13,8 +13,8 @@ Run `npm run dev` to start the development server.
 [x] แก้ไข Pie chart ให้ขอบมน
 [X] Map ข้อมูลให้ดึงข้อมูลได้เร็วขึ้น
 [x] NVRStatusPage เพิ่มการแสดงข้อมูลย้อนหลัง
+[x] แก้ไขการเพิ่ม sort by ข้อมูล
 [] Dashboard เพิ่มการแสดงดูข้อมูลย้อนหลัง
-[] แก้ไขการเพิ่ม sort by ข้อมูล
 [] เพิ่มปุ่มปรับโหลด light : Dark
 
 [] optimize code
