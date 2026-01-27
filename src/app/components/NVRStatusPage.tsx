@@ -100,6 +100,10 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
   
+  // Sort states
+  const [sortField, setSortField] = useState<string>('nvr');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  
   // Supabase states
   const [supabaseData, setSupabaseData] = useState<NVRStatus[]>([]);
   const [isLoadingSupabase, setIsLoadingSupabase] = useState(false);
@@ -229,18 +233,67 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     setExpandedRows(newExpanded);
   };
 
+  // Handle sort
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Sort function
+  const sortItems = (items: NVRStatus[]) => {
+    return [...items].sort((a, b) => {
+      let aValue: any = a[sortField as keyof NVRStatus];
+      let bValue: any = b[sortField as keyof NVRStatus];
+      
+      // Handle special cases
+      if (sortField === 'issueCount') {
+        aValue = getIssueCount(a);
+        bValue = getIssueCount(b);
+      }
+      
+      // Handle string comparison
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+      
+      if (sortDirection === 'asc') {
+        return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+      } else {
+        return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+      }
+    });
+  };
+
   // Filter NVR list from Supabase data
-  const filteredNVRList = supabaseData.filter((nvr) => {
-    const matchesSearch =
-      nvr.nvr.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      nvr.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      nvr.district.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDistrict = selectedDistrict === "all" || nvr.district === selectedDistrict;
-    return matchesSearch && matchesDistrict;
-  });
+  const filteredNVRList = sortItems(
+    supabaseData.filter((nvr) => {
+      const matchesSearch =
+        nvr.nvr.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        nvr.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        nvr.district.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesDistrict = selectedDistrict === "all" || nvr.district === selectedDistrict;
+      return matchesSearch && matchesDistrict;
+    })
+  );
 
   const normalNVRs = filteredNVRList.filter((nvr) => !hasIssues(nvr));
   const problemNVRs = filteredNVRList.filter((nvr) => hasIssues(nvr));
+  
+  // Separate critical and attention issues
+  const criticalNVRs = filteredNVRList.filter((nvr) => {
+    const issues = getIssueCount(nvr);
+    return issues >= 2; // 3+ issues = critical
+  });
+  
+  const attentionNVRs = filteredNVRList.filter((nvr) => {
+    const issues = getIssueCount(nvr);
+    return issues >= 1 && issues < 3; // 1-2 issues = attention
+  });
 
   // Calculate summary stats for the cards
   const summaryStats = {
@@ -913,16 +966,28 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 All Units ({filteredNVRList.length})
               </TabsTrigger>
               <TabsTrigger
+                value="normal"
+                className="rounded-lg data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 transition-all px-6"
+              >
+                Healthy ({normalNVRs.length})
+              </TabsTrigger>
+              <TabsTrigger
                 value="problem"
                 className="rounded-lg data-[state=active]:bg-red-500/20 data-[state=active]:text-red-400 transition-all px-6"
               >
                 Problematic ({problemNVRs.length})
               </TabsTrigger>
               <TabsTrigger
-                value="normal"
-                className="rounded-lg data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 transition-all px-6"
+                value="critical"
+                className="rounded-lg data-[state=active]:bg-red-600/20 data-[state=active]:text-red-500 transition-all px-6"
               >
-                Healthy ({normalNVRs.length})
+                Critical ({criticalNVRs.length})
+              </TabsTrigger>
+              <TabsTrigger
+                value="attention"
+                className="rounded-lg data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 transition-all px-6"
+              >
+                Attention ({attentionNVRs.length})
               </TabsTrigger>
             </TabsList>
 
@@ -984,6 +1049,36 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
             <Pagination items={problemNVRs} label="problem units" />
           </TabsContent>
 
+          <TabsContent value="critical" className="space-y-3">
+            {renderTableHeader()}
+            <div className="space-y-3">
+              {getPaginatedItems(criticalNVRs).map((nvr) => renderNVRRow(nvr))}
+            </div>
+            {criticalNVRs.length === 0 && (
+              <div className="text-center py-8 text-slate-500">
+                <CheckCircle className="size-12 mx-auto mb-3 text-green-500" />
+                <p className="text-lg font-medium">No Critical Issues Found</p>
+                <p className="text-sm mt-1">All systems are operating within acceptable parameters</p>
+              </div>
+            )}
+            <Pagination items={criticalNVRs} label="critical units" />
+          </TabsContent>
+
+          <TabsContent value="attention" className="space-y-3">
+            {renderTableHeader()}
+            <div className="space-y-3">
+              {getPaginatedItems(attentionNVRs).map((nvr) => renderNVRRow(nvr))}
+            </div>
+            {attentionNVRs.length === 0 && (
+              <div className="text-center py-8 text-slate-500">
+                <CheckCircle className="size-12 mx-auto mb-3 text-green-500" />
+                <p className="text-lg font-medium">No Attention Issues Found</p>
+                <p className="text-sm mt-1">All systems are operating normally</p>
+              </div>
+            )}
+            <Pagination items={attentionNVRs} label="attention units" />
+          </TabsContent>
+
           <TabsContent value="normal" className="space-y-3">
             {renderTableHeader()}
             <div className="space-y-3">
@@ -997,13 +1092,40 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
   );
 
   function renderTableHeader() {
+    const getSortIcon = (field: string) => {
+      if (sortField !== field) {
+        return <ChevronUp className="size-3 opacity-40" />;
+      }
+      return sortDirection === 'asc' 
+        ? <ChevronUp className="size-3 opacity-100" />
+        : <ChevronDown className="size-3 opacity-100" />;
+    };
+
     return (
       <div className="px-6 py-3 bg-[#0f172a]/40 border border-slate-800/40 rounded-xl mb-2">
         <div className="grid grid-cols-12 gap-4 items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-          <div className="col-span-3">NVR / Node Identity</div>
-          <div className="col-span-1">District</div>
+          <div 
+            className="col-span-3 flex items-center gap-1 cursor-pointer hover:text-slate-300 transition-colors"
+            onClick={() => handleSort('nvr')}
+          >
+            NVR / Node Identity
+            {getSortIcon('nvr')}
+          </div>
+          <div 
+            className="col-span-1 flex items-center gap-1 cursor-pointer hover:text-slate-300 transition-colors"
+            onClick={() => handleSort('district')}
+          >
+            District
+            {getSortIcon('district')}
+          </div>
           <div className="col-span-5 text-center">Infrastructure Check</div>
-          <div className="col-span-3 text-right">Capacity / Health</div>
+          <div 
+            className="col-span-3 text-right flex items-center justify-end gap-1 cursor-pointer hover:text-slate-300 transition-colors"
+            onClick={() => handleSort('issueCount')}
+          >
+            Issues / Health
+            {getSortIcon('issueCount')}
+          </div>
         </div>
       </div>
     );

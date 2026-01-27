@@ -254,7 +254,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 Registered NVR Devices
               </p>
             </div>
-            <div className="absolute -right-2 -bottom-2 opacity-5 grayscale group-hover:grayscale-0 transition-all">
+            <div className="absolute -right-2 -bottom-2 opacity-5 grayscale group-hover:grayscale-0 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(59,130,246,0.5)] transition-all duration-300">
               <Server className="size-20 text-blue-500" />
             </div>
           </div>
@@ -280,7 +280,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 % Operational
               </p>
             </div>
-            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
+            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all duration-300">
               <CheckCircle className="size-20 text-emerald-500" />
             </div>
           </div>
@@ -306,7 +306,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 % Need Attention
               </p>
             </div>
-            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
+            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(245,158,11,0.5)] transition-all duration-300">
               <AlertTriangle className="size-20 text-amber-500" />
             </div>
           </div>
@@ -332,7 +332,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 % Critical
               </p>
             </div>
-            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
+            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(239,68,68,0.5)] transition-all duration-300">
               <XCircle className="size-20 text-rose-500" />
             </div>
           </div>
