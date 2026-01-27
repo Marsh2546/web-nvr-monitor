@@ -83,6 +83,8 @@ interface NVRWithIssues extends NVRStatus {
   hasIssues: boolean;
   issueCount: number;
   issues: string[];
+  hasCriticalIssues: boolean;
+  hasAttentionIssues: boolean;
 }
 
 export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
@@ -111,6 +113,28 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
     return () => clearInterval(interval);
   }, []);
 
+  // Check if NVR has critical issues (ONU/NVR/HDD failure)
+  const hasCriticalIssues = (nvr: NVRStatus) => {
+    return (
+      !nvr.ping_onu ||    // ONU down
+      !nvr.ping_nvr ||    // NVR down
+      !nvr.hdd_status     // HDD failure
+    );
+  };
+
+  // Check if NVR has attention issues (View/Login problems)
+  const hasAttentionIssues = (nvr: NVRStatus) => {
+    return (
+      !nvr.normal_view ||  // View problem
+      !nvr.check_login     // Login problem
+    );
+  };
+
+  // Check if NVR has any issues (for backward compatibility)
+  const hasIssues = (nvr: NVRStatus) => {
+    return hasCriticalIssues(nvr) || hasAttentionIssues(nvr);
+  };
+
   // ✅ useMemo: คำนวณ issues ครั้งเดียว แทนที่จะคำนวณทุกครั้งที่ render
   const nvrWithIssues = useMemo(
     () =>
@@ -124,9 +148,11 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
 
         return {
           ...nvr,
-          hasIssues: issues.length > 0,
+          hasIssues: hasIssues(nvr),
           issueCount: issues.length,
           issues: issues,
+          hasCriticalIssues: hasCriticalIssues(nvr),
+          hasAttentionIssues: hasAttentionIssues(nvr),
         };
       }),
     [nvrList],
@@ -137,19 +163,22 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
     const totalNVR = nvrWithIssues.length;
     const normalNVR = nvrWithIssues.filter((nvr) => !nvr.hasIssues).length;
     const problemNVR = nvrWithIssues.filter((nvr) => nvr.hasIssues).length;
-    const criticalNVRs = nvrWithIssues.filter((nvr) => nvr.issueCount >= 2);
-
+    const criticalNVRs = nvrWithIssues.filter((nvr) => nvr.hasCriticalIssues);
+    const attentionNVRs = nvrWithIssues.filter((nvr) => nvr.hasAttentionIssues && !nvr.hasCriticalIssues);
+    
+    // Count individual issues
     const pingOnuFail = nvrWithIssues.filter((nvr) => !nvr.ping_onu).length;
     const pingNvrFail = nvrWithIssues.filter((nvr) => !nvr.ping_nvr).length;
     const hddFail = nvrWithIssues.filter((nvr) => !nvr.hdd_status).length;
     const viewFail = nvrWithIssues.filter((nvr) => !nvr.normal_view).length;
     const loginFail = nvrWithIssues.filter((nvr) => !nvr.check_login).length;
-
+    
     return {
       totalNVR,
       normalNVR,
       problemNVR,
       criticalNVRs,
+      attentionNVRs,
       pingOnuFail,
       pingNvrFail,
       hddFail,
@@ -162,7 +191,8 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
   const chartData = useMemo(() => {
     const statusData = [
       { name: "Healthy", value: stats.normalNVR, fill: "var(--chart-1)" },
-      { name: "Failure", value: stats.problemNVR, fill: "var(--destructive)" },
+      { name: "Critical", value: stats.criticalNVRs.length, fill: "#ef4444" },
+      { name: "Attention", value: stats.attentionNVRs.length, fill: "#f59e0b" },
     ];
 
     const issueData = [
@@ -183,8 +213,10 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
         const existing = acc.find((item) => item.district === nvr.district);
         if (existing) {
           existing.total += 1;
-          if (nvr.hasIssues) {
-            existing.problem += 1;
+          if (nvr.hasCriticalIssues) {
+            existing.critical += 1;
+          } else if (nvr.hasAttentionIssues) {
+            existing.attention += 1;
           } else {
             existing.normal += 1;
           }
@@ -193,7 +225,8 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
             district: nvr.district,
             total: 1,
             normal: nvr.hasIssues ? 0 : 1,
-            problem: nvr.hasIssues ? 1 : 0,
+            critical: nvr.hasCriticalIssues ? 1 : 0,
+            attention: nvr.hasAttentionIssues && !nvr.hasCriticalIssues ? 1 : 0,
           });
         }
         return acc;
@@ -202,7 +235,8 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
         district: string;
         total: number;
         normal: number;
-        problem: number;
+        critical: number;
+        attention: number;
       }>,
     );
 
@@ -251,7 +285,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 <AnimatedNumber value={stats.totalNVR} />
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                Registered NVR Devices
+                Total NVR Devices
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-5 grayscale group-hover:grayscale-0 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(59,130,246,0.5)] transition-all duration-300">
@@ -297,11 +331,11 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
             </div>
             <div>
               <div className="text-3xl font-extrabold text-white mb-0.5">
-                <AnimatedNumber value={stats.problemNVR} />
+                <AnimatedNumber value={stats.attentionNVRs.length} />
               </div>
               <p className="text-xs text-slate-500 font-medium">
                 {stats.totalNVR > 0
-                  ? ((stats.problemNVR / stats.totalNVR) * 100).toFixed(1)
+                  ? ((stats.attentionNVRs.length / stats.totalNVR) * 100).toFixed(1)
                   : 0}
                 % Need Attention
               </p>
@@ -327,7 +361,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
               </div>
               <p className="text-xs text-slate-500 font-medium">
                 {stats.problemNVR > 0
-                  ? ((stats.criticalNVRs.length / stats.problemNVR) * 100).toFixed(1)
+                  ? ((stats.criticalNVRs.length / stats.attentionNVRs.length) * 100).toFixed(1)
                   : 0}
                 % Critical
               </p>
@@ -427,7 +461,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                       {chartData.statusData.map((entry, index) => (
                         <Cell
                           key={`cell-status-${index}`}
-                          fill={index === 0 ? "#3b82f6" : "#f43f5e"}
+                          fill={entry.fill}
                         />
                       ))}
                     </Pie>
@@ -452,7 +486,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                   </span>
                 </div>
               </div>
-              <div className="flex justify-center gap-6 mt-2">
+              <div className="flex justify-center gap-4 mt-2">
                 <div className="flex items-center gap-2">
                   <div className="size-2 rounded-full bg-blue-500" />
                   <span className="text-xs text-slate-400 font-medium">
@@ -461,10 +495,17 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="size-2 rounded-full bg-rose-500" />
+                  <div className="size-2 rounded-full bg-red-500" />
                   <span className="text-xs text-slate-400 font-medium">
-                    Failure (
-                    {((stats.problemNVR / stats.totalNVR) * 100).toFixed(0)}%)
+                    Critical (
+                    {((stats.criticalNVRs.length / stats.totalNVR) * 100).toFixed(0)}%)
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="size-2 rounded-full bg-amber-500" />
+                  <span className="text-xs text-slate-400 font-medium">
+                    Attention (
+                    {((stats.attentionNVRs.length / stats.totalNVR) * 100).toFixed(0)}%)
                   </span>
                 </div>
               </div>
@@ -566,9 +607,15 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="size-2 rounded-full bg-rose-500" />
+                <div className="size-2 rounded-full bg-amber-500" />
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                  Failing
+                  Attention
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="size-2 rounded-full bg-red-500" />
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                  Critical
                 </span>
               </div>
             </div>
@@ -614,14 +661,21 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                   name="Healthy"
                   fill="#3b82f6"
                   radius={[4, 4, 0, 0]}
-                  barSize={24}
+                  barSize={20}
                 />
                 <Bar
-                  dataKey="problem"
-                  name="Failing"
-                  fill="#f43f5e"
+                  dataKey="attention"
+                  name="Attention"
+                  fill="#f59e0b"
                   radius={[4, 4, 0, 0]}
-                  barSize={24}
+                  barSize={20}
+                />
+                <Bar
+                  dataKey="critical"
+                  name="Critical"
+                  fill="#ef4444"
+                  radius={[4, 4, 0, 0]}
+                  barSize={20}
                 />
               </BarChart>
             </ResponsiveContainer>

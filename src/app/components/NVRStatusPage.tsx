@@ -200,18 +200,29 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     new Set(supabaseData.map((nvr) => nvr.district)),
   ).sort();
 
-  // Check if NVR has any issues
-  const hasIssues = (nvr: NVRStatus) => {
+  // Check if NVR has critical issues (ONU/NVR/HDD failure)
+  const hasCriticalIssues = (nvr: NVRStatus) => {
     return (
-      !nvr.ping_onu ||
-      !nvr.ping_nvr ||
-      !nvr.hdd_status ||
-      !nvr.normal_view ||
-      !nvr.check_login
+      !nvr.ping_onu ||    // ONU down
+      !nvr.ping_nvr ||    // NVR down
+      !nvr.hdd_status     // HDD failure
     );
   };
 
-  // Get issue count
+  // Check if NVR has attention issues (View/Login problems)
+  const hasAttentionIssues = (nvr: NVRStatus) => {
+    return (
+      !nvr.normal_view ||  // View problem
+      !nvr.check_login     // Login problem
+    );
+  };
+
+  // Check if NVR has any issues (for backward compatibility)
+  const hasIssues = (nvr: NVRStatus) => {
+    return hasCriticalIssues(nvr) || hasAttentionIssues(nvr);
+  };
+
+  // Get issue count (for display purposes only)
   const getIssueCount = (nvr: NVRStatus) => {
     let count = 0;
     if (!nvr.ping_onu) count++;
@@ -284,23 +295,16 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
   const normalNVRs = filteredNVRList.filter((nvr) => !hasIssues(nvr));
   const problemNVRs = filteredNVRList.filter((nvr) => hasIssues(nvr));
   
-  // Separate critical and attention issues
-  const criticalNVRs = filteredNVRList.filter((nvr) => {
-    const issues = getIssueCount(nvr);
-    return issues >= 2; // 3+ issues = critical
-  });
-  
-  const attentionNVRs = filteredNVRList.filter((nvr) => {
-    const issues = getIssueCount(nvr);
-    return issues >= 1 && issues < 3; // 1-2 issues = attention
-  });
+  // Separate critical and attention issues based on new logic
+  const criticalNVRs = filteredNVRList.filter((nvr) => hasCriticalIssues(nvr));
+  const attentionNVRs = filteredNVRList.filter((nvr) => hasAttentionIssues(nvr) && !hasCriticalIssues(nvr));
 
   // Calculate summary stats for the cards
   const summaryStats = {
     total: supabaseData.length,
     healthy: supabaseData.filter((nvr) => !hasIssues(nvr)).length,
-    attention: supabaseData.filter((nvr) => hasIssues(nvr)).length,
-    critical: supabaseData.filter((nvr) => getIssueCount(nvr) >= 2).length,
+    attention: supabaseData.filter((nvr) => hasAttentionIssues(nvr) && !hasCriticalIssues(nvr)).length,
+    critical: supabaseData.filter((nvr) => hasCriticalIssues(nvr)).length,
   };
 
   // Pagination calculations
@@ -454,8 +458,9 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     );
 
   const renderNVRRow = (nvr: NVRStatus) => {
-    const issues = getIssueCount(nvr);
-    const isNormal = issues === 0;
+    const isCritical = hasCriticalIssues(nvr);
+    const isAttention = hasAttentionIssues(nvr) && !isCritical;
+    const isNormal = !hasIssues(nvr);
     const isExpanded = expandedRows.has(nvr.id);
 
     return (
@@ -465,7 +470,9 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
           "border rounded-xl transition-all duration-300 overflow-hidden",
           isNormal
             ? "border-slate-800 bg-slate-900/40 hover:bg-slate-900/60"
-            : "border-red-500/30 bg-red-500/5 hover:bg-red-500/10 shadow-[0_0_15px_rgba(239,68,68,0.1)]",
+            : isCritical
+            ? "border-red-500/40 bg-red-500/5 hover:bg-red-500/10 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
+            : "border-amber-500/40 bg-amber-500/5 hover:bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.1)]"
         )}
       >
         {/* Main Row - Compact */}
@@ -566,9 +573,14 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
               {!isNormal && (
                 <Badge
                   variant="destructive"
-                  className="text-[10px] bg-red-500/10 text-red-400 border-red-500/20 font-bold px-2 py-0 h-6"
+                  className={cn(
+                    "text-[10px] font-bold px-2 py-0 h-6",
+                    isCritical 
+                      ? "bg-red-500/20 text-red-400 border-red-500/30"
+                      : "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                  )}
                 >
-                  {issues} ISSUES
+                  {isCritical ? "CRITICAL" : "ATTENTION"}
                 </Badge>
               )}
               {isNormal && (
@@ -865,7 +877,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 <AnimatedNumber value={summaryStats.total} />
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                Total NVR units
+                Total NVR Devices
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-5 grayscale group-hover:grayscale-0 transition-all">
@@ -891,7 +903,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 {summaryStats.total > 0
                   ? ((summaryStats.healthy / summaryStats.total) * 100).toFixed(1)
                   : 0}
-                % of total units
+                % Operational
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
@@ -917,7 +929,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 {summaryStats.total > 0
                   ? ((summaryStats.attention / summaryStats.total) * 100).toFixed(1)
                   : 0}
-                % of total units
+                % Need Attention
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
@@ -946,7 +958,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                       1,
                     )
                   : 0}
-                % of critical issues
+                % Critical
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
