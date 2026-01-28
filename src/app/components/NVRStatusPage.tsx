@@ -110,7 +110,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
   const [supabaseError, setSupabaseError] = useState<string | null>(null);
   
   const today = new Date();
-  const [selectedDate, setSelectedDate] = useState<Date>(today);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date(2026, 0, 28)); // 28/1/2026
   const formatThaiDate = (date: Date) => {
     const thaiDays = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
     const thaiMonths = [
@@ -150,13 +150,24 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
       setSupabaseError(null);
       
       try {
-        // Use local date format instead of UTC to avoid timezone issues
-        const year = selectedDate.getFullYear();
-        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-        const day = String(selectedDate.getDate()).padStart(2, '0');
-        const dateString = `${year}-${month}-${day}`;
+        // Create date range for the entire day in local timezone
+        const startOfDay = new Date(selectedDate);
+        startOfDay.setHours(0, 0, 0, 0);
         
-        const data = await fetchNVRStatusHistory(dateString);
+        const endOfDay = new Date(selectedDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        // Convert to ISO strings for Supabase query
+        const startDate = startOfDay.toISOString();
+        const endDate = endOfDay.toISOString();
+        
+        console.log('Fetching data for date range:', {
+          selectedDate: selectedDate.toDateString(),
+          startDate,
+          endDate
+        });
+        
+        const data = await fetchNVRStatusHistory(startDate, endDate);
         setSupabaseData(data);
       } catch (error) {
         console.error('Error fetching Supabase data:', error);
@@ -176,13 +187,24 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
       setSupabaseError(null);
       
       try {
-        // Use today's date for initial load
-        const year = selectedDate.getFullYear();
-        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-        const day = String(selectedDate.getDate()).padStart(2, '0');
-        const dateString = `${year}-${month}-${day}`;
+        // Create date range for the entire day in local timezone
+        const startOfDay = new Date(selectedDate);
+        startOfDay.setHours(0, 0, 0, 0);
         
-        const data = await fetchNVRStatusHistory(dateString);
+        const endOfDay = new Date(selectedDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        // Convert to ISO strings for Supabase query
+        const startDate = startOfDay.toISOString();
+        const endDate = endOfDay.toISOString();
+        
+        console.log('Initial load - Fetching data for date range:', {
+          selectedDate: selectedDate.toDateString(),
+          startDate,
+          endDate
+        });
+        
+        const data = await fetchNVRStatusHistory(startDate, endDate);
         setSupabaseData(data);
       } catch (error) {
         console.error('Error fetching initial Supabase data:', error);

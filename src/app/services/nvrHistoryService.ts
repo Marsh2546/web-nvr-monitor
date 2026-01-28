@@ -19,89 +19,74 @@ export interface NVRStatusHistory {
   source: string
 }
 
-export async function fetchNVRStatusHistory(date: string): Promise<NVRStatus[]> {
+export async function fetchNVRStatusHistory(startDate: string, endDate: string): Promise<NVRStatus[]> {
   try {
-    // Parse date and create range for the entire day
-    const targetDate = new Date(date);
-    const year = targetDate.getFullYear();
-    const month = targetDate.getMonth();
-    const day = targetDate.getDate();
+    console.log('Fetching NVR status history between:', { startDate, endDate });
     
-    // Create start and end of day in local timezone, then convert to UTC
-    const startOfDay = new Date(year, month, day, 0, 0, 0);
-    const endOfDay = new Date(year, month, day + 1, 0, 0, 0);
+    let allData: NVRStatus[] = [];
+    let offset = 0;
+    const pageSize = 1000;
+    let hasMore = true;
     
-    // First get the count to see how many records exist
-    const { count, error: countError } = await supabase
-      .from('nvr_status_history')
-      .select('*', { count: 'exact', head: true })
-      .gte('recorded_at', startOfDay.toISOString())
-      .lt('recorded_at', endOfDay.toISOString())
-
-    if (countError) {
-      console.error('Error counting NVR status history:', countError)
-    } else {
-      console.log(`Found ${count} total records for ${date}`)
-    }
-    
-    // If no records, return empty array
-    if (!count || count === 0) {
-      return []
-    }
-    
-    // Use pagination to fetch all data
-    const allData: NVRStatusHistory[] = []
-    const pageSize = 1000
-    let page = 0
-    
-    while (page * pageSize < count) {
+    while (hasMore) {
       const { data, error } = await supabase
         .from('nvr_status_history')
         .select('*')
-        .gte('recorded_at', startOfDay.toISOString())
-        .lt('recorded_at', endOfDay.toISOString())
-        .order('district', { ascending: true })
-        .range(page * pageSize, (page + 1) * pageSize - 1)
-
+        .gte('recorded_at', startDate)
+        .lte('recorded_at', endDate)
+        .order('recorded_at', { ascending: false })
+        .range(offset, offset + pageSize - 1);
+      
       if (error) {
-        console.error(`Error fetching page ${page}:`, error)
-        throw error
+        console.error('Supabase query error:', error);
+        throw error;
       }
-
+      
       if (data && data.length > 0) {
-        allData.push(...data)
-        console.log(`Fetched page ${page + 1}: ${data.length} records`)
+        // Get the latest record for each NVR
+        const latestRecords = new Map<string, any>();
+        
+        data.forEach(record => {
+          const existing = latestRecords.get(record.nvr_id);
+          if (!existing || new Date(record.recorded_at) > new Date(existing.recorded_at)) {
+            latestRecords.set(record.nvr_id, record);
+          }
+        });
+        
+        const transformedData: NVRStatus[] = Array.from(latestRecords.values()).map(record => ({
+          id: record.nvr_id,
+          nvr: record.nvr_name,
+          district: record.district,
+          location: record.location,
+          onu_ip: record.onu_ip,
+          ping_onu: record.ping_onu,
+          nvr_ip: record.nvr_ip,
+          ping_nvr: record.ping_nvr,
+          hdd_status: record.hdd_status,
+          normal_view: record.normal_view,
+          check_login: record.check_login,
+          camera_count: record.camera_count,
+          date_updated: record.recorded_at,
+        }));
+        
+        allData = allData.concat(transformedData);
+        
+        if (data.length < pageSize) {
+          hasMore = false;
+        } else {
+          offset += pageSize;
+        }
+      } else {
+        hasMore = false;
       }
-
-      // If we got less than pageSize, we're done
-      if (!data || data.length < pageSize) {
-        break
-      }
-
-      page++
     }
-
-    console.log(`Total fetched records: ${allData.length}`)
-
-    // Transform to NVRStatus format
-    return allData.map((item: NVRStatusHistory) => ({
-      id: item.nvr_id,
-      nvr: item.nvr_name,
-      district: item.district,
-      location: item.location,
-      onu_ip: item.onu_ip,
-      ping_onu: item.ping_onu,
-      nvr_ip: item.nvr_ip,
-      ping_nvr: item.ping_nvr,
-      hdd_status: item.hdd_status,
-      normal_view: item.normal_view,
-      check_login: item.check_login,
-      camera_count: item.camera_count,
-      date_updated: item.recorded_at
-    }))
+    
+    console.log(`Found ${allData.length} unique NVR records`);
+    return allData;
+    
   } catch (error) {
-    console.error('Failed to fetch NVR status history:', error)
-    return []
+    console.error('Error fetching NVR status history:', error);
+    throw error;
   }
 }
 
