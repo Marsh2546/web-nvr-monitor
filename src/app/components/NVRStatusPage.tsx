@@ -1,13 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { NVRStatus } from "@/app/types/nvr";
 import { fetchNVRStatusHistory } from "@/app/services/nvrHistoryService";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/app/components/ui/card";
+import { Card, CardContent } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Input } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
@@ -31,21 +25,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  Filter,
   Calendar,
   Server,
   CheckCircle,
   AlertTriangle,
   XCircle,
-  AlertCircle,
   Wifi,
-  WifiOff,
   HardDrive,
   Camera,
-  User,
-  MapPin,
   Eye,
-  EyeOff,
   LogIn,
   Clock,
   ChevronsLeft,
@@ -53,7 +41,16 @@ import {
 } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 import { th } from "date-fns/locale";
-import { format, addMonths, subMonths } from "date-fns";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
 
 // Animated Number Component
 const AnimatedNumber = ({
@@ -121,6 +118,10 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
   const [isLoadingSupabase, setIsLoadingSupabase] = useState(false);
   const [supabaseError, setSupabaseError] = useState<string | null>(null);
 
+  // Chart data state
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [isLoadingChart, setIsLoadingChart] = useState(false);
+
   const today = new Date();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date()); // 28/1/2026
   const formatThaiDate = (date: Date) => {
@@ -173,6 +174,79 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     setShowDatePicker(!showDatePicker);
   };
 
+  // Fetch chart data for all dates
+  useEffect(() => {
+    const fetchChartData = async () => {
+      setIsLoadingChart(true);
+      try {
+        // Get data for the last 30 days
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 30);
+
+        const startISO = startDate.toISOString();
+        const endISO = endDate.toISOString();
+
+        const data = await fetchNVRStatusHistory(startISO, endISO);
+
+        // Group by date and calculate stats
+        const dateStats = new Map<
+          string,
+          {
+            healthy: number;
+            critical: number;
+            attention: number;
+          }
+        >();
+
+        data.forEach((nvr) => {
+          const date = nvr.date_updated.split("T")[0];
+          if (!dateStats.has(date)) {
+            dateStats.set(date, { healthy: 0, critical: 0, attention: 0 });
+          }
+
+          const stats = dateStats.get(date)!;
+          if (!hasIssues(nvr)) {
+            stats.healthy++;
+          } else if (hasCriticalIssues(nvr)) {
+            stats.critical++;
+          } else if (hasAttentionIssues(nvr)) {
+            stats.attention++;
+          }
+        });
+
+        // Convert to chart data format
+        const chartDataArray = Array.from(dateStats.entries())
+          .map(([date, stats]) => {
+            const dateObj = new Date(date);
+            return {
+              date: dateObj.toLocaleDateString("th-TH", {
+                day: "numeric",
+                month: "short",
+              }),
+              fullDate: date,
+              healthy: stats.healthy,
+              critical: stats.critical,
+              attention: stats.attention,
+              total: stats.healthy + stats.critical + stats.attention,
+            };
+          })
+          .sort(
+            (a, b) =>
+              new Date(a.fullDate).getTime() - new Date(b.fullDate).getTime(),
+          );
+
+        setChartData(chartDataArray);
+      } catch (error) {
+        console.error("Error fetching chart data:", error);
+      } finally {
+        setIsLoadingChart(false);
+      }
+    };
+
+    fetchChartData();
+  }, []);
+
   // Close date picker when scrolling
   useEffect(() => {
     const handleScroll = () => {
@@ -181,8 +255,8 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [showDatePicker]);
 
   // Fetch data from Supabase when date changes
@@ -738,7 +812,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                     <HardDrive className="size-3.5 text-purple-400" />
                   </div>
                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    Storage & Logic
+                    Storage & Login
                   </h4>
                 </div>
 
@@ -954,7 +1028,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 Total NVR Devices
               </p>
             </div>
-            <div className="absolute -right-2 -bottom-2 opacity-5 grayscale group-hover:grayscale-0 transition-all">
+            <div className="absolute -right-2 -bottom-2 opacity-5 grayscale group-hover:grayscale-0 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(59,130,246,0.5)] transition-all duration-300">
               <Server className="size-20 text-blue-500" />
             </div>
           </div>
@@ -982,7 +1056,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 % Operational
               </p>
             </div>
-            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
+            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all duration-300">
               <CheckCircle className="size-20 text-emerald-500" />
             </div>
           </div>
@@ -1011,7 +1085,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 % Need Attention
               </p>
             </div>
-            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
+            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(245,158,11,0.5)] transition-all duration-300">
               <AlertTriangle className="size-20 text-amber-500" />
             </div>
           </div>
@@ -1041,9 +1115,138 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 % Critical
               </p>
             </div>
-            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-all">
+            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(239,68,68,0.5)] transition-all duration-300">
               <XCircle className="size-20 text-rose-500" />
             </div>
+          </div>
+        </div>
+
+        {/* Status Trend Chart */}
+        <div className="bg-[#0f172a] p-6 rounded-2xl border border-slate-800/50 relative overflow-hidden group">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-base font-bold text-white mb-1 uppercase tracking-tight">
+                Status Trend - Last 30 Days
+              </h3>
+              <p className="text-xs text-slate-500">
+                Daily NVR status distribution over time
+              </p>
+            </div>
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2">
+                <div className="size-2 rounded-full bg-green-500" />
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                  Healthy
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="size-2 rounded-full bg-red-500" />
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                  Critical
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="size-2 rounded-full bg-amber-500" />
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                  Attention
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-[320px] w-full">
+            {isLoadingChart ? (
+              <div className="flex items-center justify-center h-full text-slate-500">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                  <p className="text-xs">Loading chart data...</p>
+                </div>
+              </div>
+            ) : chartData.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-slate-500">
+                <div className="text-center">
+                  <LineChart className="size-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-xs">No chart data available</p>
+                </div>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={chartData}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#1e293b"
+                    vertical={false}
+                    opacity={0.3}
+                  />
+
+                  <XAxis
+                    dataKey="date"
+                    stroke="#64748b"
+                    fontSize={10}
+                    fontWeight={500}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+
+                  <YAxis
+                    stroke="#64748b"
+                    fontSize={10}
+                    fontWeight={500}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#0f172a",
+                      border: "1px solid #1e293b",
+                      borderRadius: "12px",
+                      padding: "12px",
+                      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                    }}
+                    itemStyle={{ fontSize: "12px", fontWeight: 500 }}
+                    labelStyle={{
+                      fontSize: "11px",
+                      color: "#94a3b8",
+                      marginBottom: "4px",
+                    }}
+                  />
+
+                  <Line
+                    type="monotone"
+                    dataKey="healthy"
+                    stroke="#10b981"
+                    strokeWidth={3}
+                    dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, stroke: "#10b981", strokeWidth: 2 }}
+                    name="Healthy"
+                  />
+
+                  <Line
+                    type="monotone"
+                    dataKey="critical"
+                    stroke="#ef4444"
+                    strokeWidth={3}
+                    dot={{ fill: "#ef4444", strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, stroke: "#ef4444", strokeWidth: 2 }}
+                    name="Critical"
+                  />
+
+                  <Line
+                    type="monotone"
+                    dataKey="attention"
+                    stroke="#f59e0b"
+                    strokeWidth={3}
+                    dot={{ fill: "#f59e0b", strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, stroke: "#f59e0b", strokeWidth: 2 }}
+                    name="Attention"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
