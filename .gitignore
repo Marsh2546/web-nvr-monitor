@@ -1,5 +1,30 @@
-node_modules
+# Dependencies
+node_modules/
 
+# Environment constants
 .env
 
+# Production build
+dist/
 
+# Logs
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Editor/IDE settings
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Testing
+coverage/
+
+# Misc
+tsc_output.txt
