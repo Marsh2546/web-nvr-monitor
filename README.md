@@ -8,7 +8,7 @@ Run `npm i` to install the dependencies.
 
 Run `npm run dev` to start the development server.
 
---To do list--
+#--To do list--
 [x] เอาเว็บขึ้น docker
 [x] ออกแบบฐ้านข้อมูลจัดเก็บข้อมูล time series
 [x] แก้ไข Pie chart ให้ขอบมน
@@ -17,7 +17,19 @@ Run `npm run dev` to start the development server.
 [x] แก้ไขการเพิ่ม sort by ข้อมูล
 [x] แก้ไขเงื่อนของปํญหา Critical
 [x] fix time zone filter DB
-[] Dashboard เพิ่มการแสดงดูข้อมูลย้อนหลัง
+[x] Dashboard เพิ่มการแสดงดูข้อมูลย้อนหลัง
+
+##command เร่งด่วน 🔥🔥🔥
+[X] แก้ไข pie chart แสดง label และ สีให้มองง่ายมากยิ่งขึ้น
+[] Barchart เพิ่มคำอธิบาย Healthy สามารถใช้ได้ปกติ Attention login, View Critical ONU, NVR ,HDD ว่าแต่ละสีคืออะไร
+[] เปิดปุ่ม filter ดูปัญหาแต่อุปกรณ์
+[] เปิดปุ่มexport เพราะ เขต ส่วนที่ต้องการส่งออก
+[] เปลี่ยนเงื่อนไข critical เมื่อ NVR ให้เป็นเทาทั้งแถวให้เข้าใจว่า NVR เสีย
+[] เพิ่มการแจ้งเตือนแจ้งอุปกรณ์ที่ต้องเตรียม
+NVRเสีย => NVR
+ONUเสีย => มี 2 หน่วยงาน
+Multi brakertip or ระบบไฟฟ้าต่างๆ
+NT สายfiberoptic or ONUเสีย
 
 # ถ้าสามารถดึงรูปภาพ และ ตำแหน่งได้
 

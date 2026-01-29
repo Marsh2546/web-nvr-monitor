@@ -41,7 +41,13 @@ import {
 } from "recharts";
 
 // Animated Number Component
-const AnimatedNumber = ({ value, duration = 1000 }: { value: number; duration?: number }) => {
+const AnimatedNumber = ({
+  value,
+  duration = 1000,
+}: {
+  value: number;
+  duration?: number;
+}) => {
   const [displayValue, setDisplayValue] = useState(0);
   const prevValueRef = useRef(0);
 
@@ -53,11 +59,13 @@ const AnimatedNumber = ({ value, duration = 1000 }: { value: number; duration?: 
     const animate = () => {
       const now = Date.now();
       const progress = Math.min((now - startTime) / duration, 1);
-      
+
       // Easing function for smooth animation
       const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-      const currentValue = Math.round(startValue + (endValue - startValue) * easeOutQuart);
-      
+      const currentValue = Math.round(
+        startValue + (endValue - startValue) * easeOutQuart,
+      );
+
       setDisplayValue(currentValue);
 
       if (progress < 1) {
@@ -116,17 +124,17 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
   // Check if NVR has critical issues (ONU/NVR/HDD failure)
   const hasCriticalIssues = (nvr: NVRStatus) => {
     return (
-      !nvr.ping_onu ||    // ONU down
-      !nvr.ping_nvr ||    // NVR down
-      !nvr.hdd_status     // HDD failure
+      !nvr.ping_onu || // ONU down
+      !nvr.ping_nvr || // NVR down
+      !nvr.hdd_status // HDD failure
     );
   };
 
   // Check if NVR has attention issues (View/Login problems)
   const hasAttentionIssues = (nvr: NVRStatus) => {
     return (
-      !nvr.normal_view ||  // View problem
-      !nvr.check_login     // Login problem
+      !nvr.normal_view || // View problem
+      !nvr.check_login // Login problem
     );
   };
 
@@ -164,15 +172,17 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
     const normalNVR = nvrWithIssues.filter((nvr) => !nvr.hasIssues).length;
     const problemNVR = nvrWithIssues.filter((nvr) => nvr.hasIssues).length;
     const criticalNVRs = nvrWithIssues.filter((nvr) => nvr.hasCriticalIssues);
-    const attentionNVRs = nvrWithIssues.filter((nvr) => nvr.hasAttentionIssues && !nvr.hasCriticalIssues);
-    
+    const attentionNVRs = nvrWithIssues.filter(
+      (nvr) => nvr.hasAttentionIssues && !nvr.hasCriticalIssues,
+    );
+
     // Count individual issues
     const pingOnuFail = nvrWithIssues.filter((nvr) => !nvr.ping_onu).length;
     const pingNvrFail = nvrWithIssues.filter((nvr) => !nvr.ping_nvr).length;
     const hddFail = nvrWithIssues.filter((nvr) => !nvr.hdd_status).length;
     const viewFail = nvrWithIssues.filter((nvr) => !nvr.normal_view).length;
     const loginFail = nvrWithIssues.filter((nvr) => !nvr.check_login).length;
-    
+
     return {
       totalNVR,
       normalNVR,
@@ -190,22 +200,51 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
   // ✅ useMemo: Chart data
   const chartData = useMemo(() => {
     const statusData = [
-      { name: "Healthy", value: stats.normalNVR, fill: "var(--chart-1)" },
-      { name: "Critical", value: stats.criticalNVRs.length, fill: "#ef4444" },
-      { name: "Attention", value: stats.attentionNVRs.length, fill: "#f59e0b" },
+      {
+        name: "Online",
+        value: stats.normalNVR,
+        fill: "var(--chart-1)",
+      },
+      {
+        name: "Down",
+        value: stats.criticalNVRs.length,
+        fill: "#ef4444",
+      },
+      {
+        name: "No Access",
+        value: stats.attentionNVRs.length,
+        fill: "#f59e0b",
+      },
     ];
 
     const issueData = [
-      // { value: stats.pingOnuFail, fill: "#f43f5e" }, // rose-500
-      // { value: stats.pingNvrFail, fill: "#ef4444" }, // red-500
-      // { value: stats.hddFail, fill: "#f97316" }, // orange-500
-      // { value: stats.viewFail, fill: "#eab308" }, // yellow-500
-      // { value: stats.loginFail, fill: "#84cc16" }, // lime-500
-      { name: "ONU Connectivity Issue",value: stats.pingOnuFail,fill: "#f43f5e",}, // rose-500
-      { name: "NVR Connectivity Issue",value: stats.pingNvrFail,fill: "#ef4444",}, // red-500
-      { name: "HDD Storage Issue", value: stats.hddFail, fill: "#f97316" }, // orange-500
-      { name: "Video Display Issue", value: stats.viewFail, fill: "#eab308" }, // yellow-500
-      { name: "Login Access Issue", value: stats.loginFail, fill: "#84cc16" }, // lime-500
+      // Critical Issues (สีแดง-ส้ม) - ปัญหาร้ายแรง
+      {
+        name: "ONU Connectivity",
+        value: stats.pingOnuFail,
+        fill: "#dc2626", // red-600 - ปัญหาเครือข่าย ONU
+      },
+      {
+        name: "NVR Connectivity",
+        value: stats.pingNvrFail,
+        fill: "#ef4444", // red-500 - ปัญหาเครือข่าย NVR
+      },
+      {
+        name: "HDD Storage",
+        value: stats.hddFail,
+        fill: "#f97316", // orange-500 - ปัญหาฮาร์ดดิสก์
+      },
+      // Attention Issues (สีเหลือง) - ปัญหาที่ต้องดูแล
+      {
+        name: "Video Display",
+        value: stats.viewFail,
+        fill: "#eab308", // yellow-500 - ปัญหาการแสดงผล
+      },
+      {
+        name: "Login Access",
+        value: stats.loginFail,
+        fill: "#facc15", // yellow-400 - ปัญหาการเข้าสู่ระบบ
+      },
     ].filter((item) => item.value > 0);
 
     const districtData = nvrWithIssues.reduce(
@@ -335,7 +374,10 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
               </div>
               <p className="text-xs text-slate-500 font-medium">
                 {stats.totalNVR > 0
-                  ? ((stats.attentionNVRs.length / stats.totalNVR) * 100).toFixed(1)
+                  ? (
+                      (stats.attentionNVRs.length / stats.totalNVR) *
+                      100
+                    ).toFixed(1)
                   : 0}
                 % Need Attention
               </p>
@@ -361,7 +403,10 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
               </div>
               <p className="text-xs text-slate-500 font-medium">
                 {stats.problemNVR > 0
-                  ? ((stats.criticalNVRs.length / stats.attentionNVRs.length) * 100).toFixed(1)
+                  ? (
+                      (stats.criticalNVRs.length / stats.attentionNVRs.length) *
+                      100
+                    ).toFixed(1)
                   : 0}
                 % Critical
               </p>
@@ -388,7 +433,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                   </h3>
                 </div>
               </div>
-              <div className="p-4 space-y-3 max-h-[560px] overflow-y-auto scrollbar-thin scrollbar-thumb-rose-500/40 scrollbar-track-transparent hover:scrollbar-thumb-rose-500/60">
+              <div className="p-4 space-y-3 max-h-[610px] overflow-y-auto scrollbar-thin scrollbar-thumb-rose-500/40 scrollbar-track-transparent hover:scrollbar-thumb-rose-500/60">
                 {stats.criticalNVRs.length > 0 ? (
                   stats.criticalNVRs.map((nvr) => (
                     <div
@@ -443,9 +488,11 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
               <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">
                 NVR Status Distribution
               </h3>
-              <div className="h-[250px] w-full relative">
+              <div className="h-[300px] w-full relative">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
+                  <PieChart
+                    margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                  >
                     <Pie
                       data={chartData.statusData}
                       cx="50%"
@@ -457,12 +504,51 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                       stroke="none"
                       cornerRadius={5}
                       minAngle={6}
+                      label={({
+                        cx,
+                        cy,
+                        midAngle,
+                        innerRadius,
+                        outerRadius,
+                        percent,
+                        name,
+                        value,
+                      }) => {
+                        const RADIAN = Math.PI / 180;
+                        const radius = outerRadius + 25;
+                        const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+                        return (
+                          <text
+                            x={x}
+                            y={y}
+                            fill="#e2e8f0"
+                            textAnchor={x > cx ? "start" : "end"}
+                            dominantBaseline="central"
+                            className="text-xs font-bold"
+                          >
+                            <tspan x={x} dy="0" className="font-semibold">
+                              {name}
+                            </tspan>
+                            <tspan
+                              x={x}
+                              dy="14"
+                              className="text-[11px] font-bold"
+                            >
+                              {value} ({(percent * 100).toFixed(1)}%)
+                            </tspan>
+                          </text>
+                        );
+                      }}
+                      labelLine={{
+                        stroke: "#475569",
+                        strokeWidth: 1,
+                        strokeDasharray: "3 3",
+                      }}
                     >
                       {chartData.statusData.map((entry, index) => (
-                        <Cell
-                          key={`cell-status-${index}`}
-                          fill={entry.fill}
-                        />
+                        <Cell key={`cell-status-${index}`} fill={entry.fill} />
                       ))}
                     </Pie>
                     <Tooltip
@@ -472,8 +558,13 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                         backgroundColor: "#0f172a",
                         border: "1px solid #1e293b",
                         borderRadius: "12px",
+                        padding: "8px 12px",
                       }}
                       itemStyle={{ color: "#fff", fontSize: "12px" }}
+                      formatter={(value: number, name: string) => [
+                        `${value} units`,
+                        name,
+                      ]}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -490,22 +581,30 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 <div className="flex items-center gap-2">
                   <div className="size-2 rounded-full bg-blue-500" />
                   <span className="text-xs text-slate-400 font-medium">
-                    Healthy (
+                    Online (
                     {((stats.normalNVR / stats.totalNVR) * 100).toFixed(0)}%)
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="size-2 rounded-full bg-red-500" />
                   <span className="text-xs text-slate-400 font-medium">
-                    Critical (
-                    {((stats.criticalNVRs.length / stats.totalNVR) * 100).toFixed(0)}%)
+                    Down (
+                    {(
+                      (stats.criticalNVRs.length / stats.totalNVR) *
+                      100
+                    ).toFixed(0)}
+                    %)
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="size-2 rounded-full bg-amber-500" />
                   <span className="text-xs text-slate-400 font-medium">
-                    Attention (
-                    {((stats.attentionNVRs.length / stats.totalNVR) * 100).toFixed(0)}%)
+                    No Access (
+                    {(
+                      (stats.attentionNVRs.length / stats.totalNVR) *
+                      100
+                    ).toFixed(0)}
+                    %)
                   </span>
                 </div>
               </div>
