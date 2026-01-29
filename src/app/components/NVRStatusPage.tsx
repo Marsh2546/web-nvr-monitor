@@ -1040,7 +1040,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 <CheckCircle className="size-5 text-emerald-500" />
               </div>
               <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
-                Status: Healthy
+                Status: Online
               </span>
             </div>
             <div>
@@ -1053,7 +1053,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                       1,
                     )
                   : 0}
-                % Operational
+                % of Working Normally
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all duration-300">
@@ -1068,7 +1068,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 <AlertTriangle className="size-5 text-amber-500" />
               </div>
               <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">
-                Needs Attention
+                Status: No Access
               </span>
             </div>
             <div>
@@ -1082,7 +1082,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                       100
                     ).toFixed(1)
                   : 0}
-                % Need Attention
+                % of Cannot Access
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(245,158,11,0.5)] transition-all duration-300">
@@ -1097,7 +1097,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 <XCircle className="size-5 text-rose-500" />
               </div>
               <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest">
-                Critical Failure
+                Status: Down
               </span>
             </div>
             <div>
@@ -1112,7 +1112,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                       100
                     ).toFixed(1)
                   : 0}
-                % Critical
+                % of System Down
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(239,68,68,0.5)] transition-all duration-300">

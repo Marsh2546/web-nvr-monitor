@@ -220,28 +220,28 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
     const issueData = [
       // Critical Issues (สีแดง-ส้ม) - ปัญหาร้ายแรง
       {
-        name: "ONU Connectivity",
+        name: "ONU Down",
         value: stats.pingOnuFail,
         fill: "#dc2626", // red-600 - ปัญหาเครือข่าย ONU
       },
       {
-        name: "NVR Connectivity",
+        name: "NVR Down",
         value: stats.pingNvrFail,
         fill: "#ef4444", // red-500 - ปัญหาเครือข่าย NVR
       },
       {
-        name: "HDD Storage",
+        name: "Disk Failure",
         value: stats.hddFail,
         fill: "#f97316", // orange-500 - ปัญหาฮาร์ดดิสก์
       },
       // Attention Issues (สีเหลือง) - ปัญหาที่ต้องดูแล
       {
-        name: "Video Display",
+        name: "No Video",
         value: stats.viewFail,
         fill: "#eab308", // yellow-500 - ปัญหาการแสดงผล
       },
       {
-        name: "Login Access",
+        name: "Access Error",
         value: stats.loginFail,
         fill: "#facc15", // yellow-400 - ปัญหาการเข้าสู่ระบบ
       },
@@ -339,7 +339,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 <CheckCircle className="size-5 text-emerald-500" />
               </div>
               <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
-                Status: Healthy
+                Status: Online
               </span>
             </div>
             <div>
@@ -350,7 +350,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 {stats.totalNVR > 0
                   ? ((stats.normalNVR / stats.totalNVR) * 100).toFixed(1)
                   : 0}
-                % Operational
+                % of Working Normally
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all duration-300">
@@ -365,7 +365,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 <AlertTriangle className="size-5 text-amber-500" />
               </div>
               <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">
-                Needs Attention
+                Status: No Access
               </span>
             </div>
             <div>
@@ -379,7 +379,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                       100
                     ).toFixed(1)
                   : 0}
-                % Need Attention
+                % of Cannot Access
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(245,158,11,0.5)] transition-all duration-300">
@@ -394,7 +394,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 <XCircle className="size-5 text-rose-500" />
               </div>
               <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest">
-                Critical Failure
+                Status: Down
               </span>
             </div>
             <div>
@@ -408,7 +408,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                       100
                     ).toFixed(1)
                   : 0}
-                % Critical
+                % of System Down
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(239,68,68,0.5)] transition-all duration-300">
@@ -817,7 +817,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                   HDD Status
                 </span>
               </div>
-              <div className="text-xl font-bold text-amber-500">
+              <div className="text-xl font-bold text-rose-500">
                 {stats.hddFail}
               </div>
               <span className="text-[9px] text-slate-600 font-medium">
@@ -845,7 +845,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                   Login
                 </span>
               </div>
-              <div className="text-xl font-bold text-rose-500">
+              <div className="text-xl font-bold text-amber-500">
                 {stats.loginFail}
               </div>
               <span className="text-[9px] text-slate-600 font-medium">

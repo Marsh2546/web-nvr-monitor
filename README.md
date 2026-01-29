@@ -21,6 +21,7 @@ Run `npm run dev` to start the development server.
 
 ##command เร่งด่วน 🔥🔥🔥
 [X] แก้ไข pie chart แสดง label และ สีให้มองง่ายมากยิ่งขึ้น
+
 [] Barchart เพิ่มคำอธิบาย Healthy สามารถใช้ได้ปกติ Attention login, View Critical ONU, NVR ,HDD ว่าแต่ละสีคืออะไร
 [] เปิดปุ่ม filter ดูปัญหาแต่อุปกรณ์
 [] เปิดปุ่มexport เพราะ เขต ส่วนที่ต้องการส่งออก
