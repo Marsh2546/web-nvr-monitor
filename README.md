@@ -15,17 +15,19 @@ Run `npm run dev` to start the development server.
 [X] Map ข้อมูลให้ดึงข้อมูลได้เร็วขึ้น
 [x] NVRStatusPage เพิ่มการแสดงข้อมูลย้อนหลัง
 [x] แก้ไขการเพิ่ม sort by ข้อมูล
-[] แก้ไขเงื่อนของปํญหา Critical
+[x] แก้ไขเงื่อนของปํญหา Critical
+[x] fix time zone filter DB
 [] Dashboard เพิ่มการแสดงดูข้อมูลย้อนหลัง
-[] เพิ่มปุ่มปรับโหลด light : Dark
+
+# ถ้าสามารถดึงรูปภาพ และ ตำแหน่งได้
 
 [] optimize code
-# ถ้าสามารถดึงรูปภาพ และ ตำแหน่งได้
 [] เพิ่ม Ai Detection image
 [] เพิ่มตำแหน่งกล้องบนแผนที่
 [] ดึงภาพจากฐานข้อมูลแสดงในรายละเอียดหน้า NVR Status
 
 # จัดการไฟล์ไม่ได้ใช้
+
 [] Dashbaoard.tsx
 [] Navigation.tsx
 [] StateCard.tsx

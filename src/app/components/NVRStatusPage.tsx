@@ -11,7 +11,12 @@ import {
 import { Badge } from "@/app/components/ui/badge";
 import { Input } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/app/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -51,7 +56,13 @@ import { th } from "date-fns/locale";
 import { format, addMonths, subMonths } from "date-fns";
 
 // Animated Number Component
-const AnimatedNumber = ({ value, duration = 1000 }: { value: number; duration?: number }) => {
+const AnimatedNumber = ({
+  value,
+  duration = 1000,
+}: {
+  value: number;
+  duration?: number;
+}) => {
   const [displayValue, setDisplayValue] = useState(0);
   const prevValueRef = useRef(0);
 
@@ -63,11 +74,13 @@ const AnimatedNumber = ({ value, duration = 1000 }: { value: number; duration?: 
     const animate = () => {
       const now = Date.now();
       const progress = Math.min((now - startTime) / duration, 1);
-      
+
       // Easing function for smooth animation
       const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-      const currentValue = Math.round(startValue + (endValue - startValue) * easeOutQuart);
-      
+      const currentValue = Math.round(
+        startValue + (endValue - startValue) * easeOutQuart,
+      );
+
       setDisplayValue(currentValue);
 
       if (progress < 1) {
@@ -88,7 +101,6 @@ interface NVRStatusPageProps {
   onPageChange: (page: "dashboard" | "status") => void;
 }
 
-
 export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState<string>("all");
@@ -99,29 +111,47 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
   const dateInputRef = useRef<HTMLInputElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
-  
+
   // Sort states
-  const [sortField, setSortField] = useState<string>('nvr');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  
+  const [sortField, setSortField] = useState<string>("nvr");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
   // Supabase states
   const [supabaseData, setSupabaseData] = useState<NVRStatus[]>([]);
   const [isLoadingSupabase, setIsLoadingSupabase] = useState(false);
   const [supabaseError, setSupabaseError] = useState<string | null>(null);
-  
+
   const today = new Date();
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date(2026, 0, 28)); // 28/1/2026
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date()); // 28/1/2026
   const formatThaiDate = (date: Date) => {
-    const thaiDays = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
-    const thaiMonths = [
-      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    const thaiDays = [
+      "อาทิตย์",
+      "จันทร์",
+      "อังคาร",
+      "พุธ",
+      "พฤหัสบดี",
+      "ศุกร์",
+      "เสาร์",
     ];
-    
+    const thaiMonths = [
+      "มกราคม",
+      "กุมภาพันธ์",
+      "มีนาคม",
+      "เมษายน",
+      "พฤษภาคม",
+      "มิถุนายน",
+      "กรกฎาคม",
+      "สิงหาคม",
+      "กันยายน",
+      "ตุลาคม",
+      "พฤศจิกายน",
+      "ธันวาคม",
+    ];
+
     const day = date.getDate();
     const month = thaiMonths[date.getMonth()];
     const year = date.getFullYear() + 543; // แปลงเป็นพ.ศ.
-    
+
     return `${day} ${month} ${year}`;
   };
 
@@ -131,7 +161,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
       const rect = buttonRef.current.getBoundingClientRect();
       setPopupPosition({
         top: rect.bottom + window.scrollY + 8,
-        left: rect.right - 250 + window.scrollX // 250px is approximate calendar width
+        left: rect.right - 250 + window.scrollX, // 250px is approximate calendar width
       });
     }
   };
@@ -143,35 +173,47 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     setShowDatePicker(!showDatePicker);
   };
 
+  // Close date picker when scrolling
+  useEffect(() => {
+    const handleScroll = () => {
+      if (showDatePicker) {
+        setShowDatePicker(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [showDatePicker]);
+
   // Fetch data from Supabase when date changes
   useEffect(() => {
     const fetchSupabaseData = async () => {
       setIsLoadingSupabase(true);
       setSupabaseError(null);
-      
+
       try {
         // Create date range for the entire day in local timezone
         const startOfDay = new Date(selectedDate);
         startOfDay.setHours(0, 0, 0, 0);
-        
+
         const endOfDay = new Date(selectedDate);
         endOfDay.setHours(23, 59, 59, 999);
-        
+
         // Convert to ISO strings for Supabase query
         const startDate = startOfDay.toISOString();
         const endDate = endOfDay.toISOString();
-        
-        console.log('Fetching data for date range:', {
+
+        console.log("Fetching data for date range:", {
           selectedDate: selectedDate.toDateString(),
           startDate,
-          endDate
+          endDate,
         });
-        
+
         const data = await fetchNVRStatusHistory(startDate, endDate);
         setSupabaseData(data);
       } catch (error) {
-        console.error('Error fetching Supabase data:', error);
-        setSupabaseError('Failed to fetch data from Supabase');
+        console.error("Error fetching Supabase data:", error);
+        setSupabaseError("Failed to fetch data from Supabase");
       } finally {
         setIsLoadingSupabase(false);
       }
@@ -185,30 +227,30 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     const fetchInitialData = async () => {
       setIsLoadingSupabase(true);
       setSupabaseError(null);
-      
+
       try {
         // Create date range for the entire day in local timezone
         const startOfDay = new Date(selectedDate);
         startOfDay.setHours(0, 0, 0, 0);
-        
+
         const endOfDay = new Date(selectedDate);
         endOfDay.setHours(23, 59, 59, 999);
-        
+
         // Convert to ISO strings for Supabase query
         const startDate = startOfDay.toISOString();
         const endDate = endOfDay.toISOString();
-        
-        console.log('Initial load - Fetching data for date range:', {
+
+        console.log("Initial load - Fetching data for date range:", {
           selectedDate: selectedDate.toDateString(),
           startDate,
-          endDate
+          endDate,
         });
-        
+
         const data = await fetchNVRStatusHistory(startDate, endDate);
         setSupabaseData(data);
       } catch (error) {
-        console.error('Error fetching initial Supabase data:', error);
-        setSupabaseError('Failed to fetch data from Supabase');
+        console.error("Error fetching initial Supabase data:", error);
+        setSupabaseError("Failed to fetch data from Supabase");
       } finally {
         setIsLoadingSupabase(false);
       }
@@ -225,17 +267,17 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
   // Check if NVR has critical issues (ONU/NVR/HDD failure)
   const hasCriticalIssues = (nvr: NVRStatus) => {
     return (
-      !nvr.ping_onu ||    // ONU down
-      !nvr.ping_nvr ||    // NVR down
-      !nvr.hdd_status     // HDD failure
+      !nvr.ping_onu || // ONU down
+      !nvr.ping_nvr || // NVR down
+      !nvr.hdd_status // HDD failure
     );
   };
 
   // Check if NVR has attention issues (View/Login problems)
   const hasAttentionIssues = (nvr: NVRStatus) => {
     return (
-      !nvr.normal_view ||  // View problem
-      !nvr.check_login     // Login problem
+      !nvr.normal_view || // View problem
+      !nvr.check_login // Login problem
     );
   };
 
@@ -269,10 +311,10 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
   // Handle sort
   const handleSort = (field: string) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
-      setSortDirection('asc');
+      setSortDirection("asc");
     }
   };
 
@@ -281,20 +323,20 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     return [...items].sort((a, b) => {
       let aValue: any = a[sortField as keyof NVRStatus];
       let bValue: any = b[sortField as keyof NVRStatus];
-      
+
       // Handle special cases
-      if (sortField === 'issueCount') {
+      if (sortField === "issueCount") {
         aValue = getIssueCount(a);
         bValue = getIssueCount(b);
       }
-      
+
       // Handle string comparison
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
+      if (typeof aValue === "string" && typeof bValue === "string") {
         aValue = aValue.toLowerCase();
         bValue = bValue.toLowerCase();
       }
-      
-      if (sortDirection === 'asc') {
+
+      if (sortDirection === "asc") {
         return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
       } else {
         return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
@@ -309,23 +351,28 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
         nvr.nvr.toLowerCase().includes(searchTerm.toLowerCase()) ||
         nvr.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
         nvr.district.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesDistrict = selectedDistrict === "all" || nvr.district === selectedDistrict;
+      const matchesDistrict =
+        selectedDistrict === "all" || nvr.district === selectedDistrict;
       return matchesSearch && matchesDistrict;
-    })
+    }),
   );
 
   const normalNVRs = filteredNVRList.filter((nvr) => !hasIssues(nvr));
   const problemNVRs = filteredNVRList.filter((nvr) => hasIssues(nvr));
-  
+
   // Separate critical and attention issues based on new logic
   const criticalNVRs = filteredNVRList.filter((nvr) => hasCriticalIssues(nvr));
-  const attentionNVRs = filteredNVRList.filter((nvr) => hasAttentionIssues(nvr) && !hasCriticalIssues(nvr));
+  const attentionNVRs = filteredNVRList.filter(
+    (nvr) => hasAttentionIssues(nvr) && !hasCriticalIssues(nvr),
+  );
 
   // Calculate summary stats for the cards
   const summaryStats = {
     total: supabaseData.length,
     healthy: supabaseData.filter((nvr) => !hasIssues(nvr)).length,
-    attention: supabaseData.filter((nvr) => hasAttentionIssues(nvr) && !hasCriticalIssues(nvr)).length,
+    attention: supabaseData.filter(
+      (nvr) => hasAttentionIssues(nvr) && !hasCriticalIssues(nvr),
+    ).length,
     critical: supabaseData.filter((nvr) => hasCriticalIssues(nvr)).length,
   };
 
@@ -493,8 +540,8 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
           isNormal
             ? "border-slate-800 bg-slate-900/40 hover:bg-slate-900/60"
             : isCritical
-            ? "border-red-500/40 bg-red-500/5 hover:bg-red-500/10 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
-            : "border-amber-500/40 bg-amber-500/5 hover:bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.1)]"
+              ? "border-red-500/40 bg-red-500/5 hover:bg-red-500/10 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
+              : "border-amber-500/40 bg-amber-500/5 hover:bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.1)]",
         )}
       >
         {/* Main Row - Compact */}
@@ -597,9 +644,9 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                   variant="destructive"
                   className={cn(
                     "text-[10px] font-bold px-2 py-0 h-6",
-                    isCritical 
+                    isCritical
                       ? "bg-red-500/20 text-red-400 border-red-500/30"
-                      : "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                      : "bg-amber-500/20 text-amber-400 border-amber-500/30",
                   )}
                 >
                   {isCritical ? "CRITICAL" : "ATTENTION"}
@@ -829,7 +876,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
 
         {/* Calendar Popup - Fixed Position */}
         {showDatePicker && (
-          <div 
+          <div
             className="fixed bg-slate-900 border border-slate-700 rounded-lg shadow-xl p-4 z-[9999]"
             style={{
               top: `${popupPosition.top}px`,
@@ -848,36 +895,41 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
               locale={th}
               className="text-slate-200"
               classNames={{
-                months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                months:
+                  "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
                 month: "space-y-4",
                 caption: "flex justify-center pt-1 relative items-center",
                 caption_label: "text-sm font-medium text-slate-300",
                 nav: "space-x-1 flex items-center",
-                nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 text-slate-300",
+                nav_button:
+                  "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 text-slate-300",
                 nav_button_previous: "absolute left-1",
                 nav_button_next: "absolute right-1",
                 table: "w-full border-collapse space-y-1",
                 head_row: "flex",
-                head_cell: "text-slate-400 rounded-md w-9 font-normal text-[0.8rem]",
+                head_cell:
+                  "text-slate-400 rounded-md w-9 font-normal text-[0.8rem]",
                 row: "flex w-full mt-2",
                 cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-slate-800/50 [&:has([aria-selected])]:bg-slate-700 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
                 day: "h-9 w-9 p-0 font-normal text-slate-300 hover:bg-slate-700 rounded-md",
                 day_range_end: "day-range-end",
-                day_selected: "bg-blue-600 text-white hover:bg-blue-600 focus:bg-blue-600",
+                day_selected:
+                  "bg-blue-600 text-white hover:bg-blue-600 focus:bg-blue-600",
                 day_today: "bg-slate-800 text-white",
                 day_outside: "day-outside text-slate-600 opacity-50",
                 day_disabled: "text-slate-500 opacity-50",
-                day_range_middle: "aria-selected:bg-slate-700 aria-selected:text-slate-300",
+                day_range_middle:
+                  "aria-selected:bg-slate-700 aria-selected:text-slate-300",
                 day_hidden: "invisible",
               }}
             />
           </div>
         )}
-        
+
         {/* Close overlay when clicking outside */}
         {showDatePicker && (
-          <div 
-            className="fixed inset-0 z-[9998]" 
+          <div
+            className="fixed inset-0 z-[9998]"
             onClick={() => setShowDatePicker(false)}
           />
         )}
@@ -923,7 +975,9 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
               </div>
               <p className="text-xs text-slate-500 font-medium">
                 {summaryStats.total > 0
-                  ? ((summaryStats.healthy / summaryStats.total) * 100).toFixed(1)
+                  ? ((summaryStats.healthy / summaryStats.total) * 100).toFixed(
+                      1,
+                    )
                   : 0}
                 % Operational
               </p>
@@ -949,7 +1003,10 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
               </div>
               <p className="text-xs text-slate-500 font-medium">
                 {summaryStats.total > 0
-                  ? ((summaryStats.attention / summaryStats.total) * 100).toFixed(1)
+                  ? (
+                      (summaryStats.attention / summaryStats.total) *
+                      100
+                    ).toFixed(1)
                   : 0}
                 % Need Attention
               </p>
@@ -976,9 +1033,10 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
               <p className="text-xs text-slate-500 font-medium">
                 {/* Priority intervention required */}
                 {summaryStats.total > 0
-                  ? ((summaryStats.critical / summaryStats.attention) * 100).toFixed(
-                      1,
-                    )
+                  ? (
+                      (summaryStats.critical / summaryStats.attention) *
+                      100
+                    ).toFixed(1)
                   : 0}
                 % Critical
               </p>
@@ -1046,7 +1104,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                   <SelectItem value="all">All Districts</SelectItem>
                   {districts.map((d) => (
                     <SelectItem key={d} value={d}>
-                    {d} 
+                      {d}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1092,7 +1150,9 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
               <div className="text-center py-8 text-slate-500">
                 <CheckCircle className="size-12 mx-auto mb-3 text-green-500" />
                 <p className="text-lg font-medium">No Critical Issues Found</p>
-                <p className="text-sm mt-1">All systems are operating within acceptable parameters</p>
+                <p className="text-sm mt-1">
+                  All systems are operating within acceptable parameters
+                </p>
               </div>
             )}
             <Pagination items={criticalNVRs} label="critical units" />
@@ -1107,7 +1167,9 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
               <div className="text-center py-8 text-slate-500">
                 <CheckCircle className="size-12 mx-auto mb-3 text-green-500" />
                 <p className="text-lg font-medium">No Attention Issues Found</p>
-                <p className="text-sm mt-1">All systems are operating normally</p>
+                <p className="text-sm mt-1">
+                  All systems are operating normally
+                </p>
               </div>
             )}
             <Pagination items={attentionNVRs} label="attention units" />
@@ -1130,35 +1192,37 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
       if (sortField !== field) {
         return <ChevronUp className="size-3 opacity-40" />;
       }
-      return sortDirection === 'asc' 
-        ? <ChevronUp className="size-3 opacity-100" />
-        : <ChevronDown className="size-3 opacity-100" />;
+      return sortDirection === "asc" ? (
+        <ChevronUp className="size-3 opacity-100" />
+      ) : (
+        <ChevronDown className="size-3 opacity-100" />
+      );
     };
 
     return (
       <div className="px-6 py-3 bg-[#0f172a]/40 border border-slate-800/40 rounded-xl mb-2">
         <div className="grid grid-cols-12 gap-4 items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-          <div 
+          <div
             className="col-span-3 flex items-center gap-1 cursor-pointer hover:text-slate-300 transition-colors"
-            onClick={() => handleSort('nvr')}
+            onClick={() => handleSort("nvr")}
           >
             NVR / Node Identity
-            {getSortIcon('nvr')}
+            {getSortIcon("nvr")}
           </div>
-          <div 
+          <div
             className="col-span-1 flex items-center gap-1 cursor-pointer hover:text-slate-300 transition-colors"
-            onClick={() => handleSort('district')}
+            onClick={() => handleSort("district")}
           >
             District
-            {getSortIcon('district')}
+            {getSortIcon("district")}
           </div>
           <div className="col-span-5 text-center">Infrastructure Check</div>
-          <div 
+          <div
             className="col-span-3 text-right flex items-center justify-end gap-1 cursor-pointer hover:text-slate-300 transition-colors"
-            onClick={() => handleSort('issueCount')}
+            onClick={() => handleSort("issueCount")}
           >
             Issues / Health
-            {getSortIcon('issueCount')}
+            {getSortIcon("issueCount")}
           </div>
         </div>
       </div>
