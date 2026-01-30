@@ -1,6 +1,6 @@
 # CCTV Repair Notification Website
 
-This is a code bundle for CCTV Repair Notification Website. The original project is available at https://cctv-repair.netlify.app/.
+This is a code bundle for CCTV Repair Notification Website. The original project is available at https://cctv-monitering-system.netlify.app/
 
 ## Running the code
 
@@ -60,21 +60,22 @@ Run `npm run dev` to start the development server.
     - [ ] ⚡ **Multi Brakertip / ระบบไฟฟ้า**
     - [ ] 🌐 **NT — สาย Fiber Optic / ONU**
 
-### 🚩 Logic & Status
+### Logic & Status
 
 - [ ] ปรับเงื่อนไข **Critical**
-  - หาก **NVR Down**
-    - ไม่สามารถเข้าถึง: ONU → HDD → Camera → Login
-    - แสดงสถานะ **Critical จาก NVR เป็นหลัก**
+  - **ONU Down** ⛔ ไม่สามารถเข้าถึง: NVR → HDD → Camera → Login
+  - **NVR Down** ⛔ ตัวอุปกรณ์กล้องเสียหาย
+  - **HDD Down** ⛔ ไม่สามารถเก็บบันทึกภาพได้
+  - **Camera Down** ⛔ ไม่สามารถดูภาพได้
 
 ---
 
-# ถ้าสามารถดึงรูปภาพ และ ตำแหน่งได้
+# ดึงรูปภาพ Sheet -> Snapshot
 
-- [ ] optimize code
+- [x] **สร้างฐานข้อมูลรูปภาพ**
+- [x] ดึงรูปภาพจาก Google Sheet เก็บ supabase
+- [ ] แสดงภาพกล้องในรายละเอียดหน้า NVR Status
 - [ ] เพิ่ม Ai Detection image
-- [ ] เพิ่มตำแหน่งกล้องบนแผนที่
-- [ ] ดึงภาพจากฐานข้อมูลแสดงในรายละเอียดหน้า NVR Status
 
 ---
 

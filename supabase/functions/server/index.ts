@@ -4,6 +4,7 @@ import { logger } from "npm:hono/logger";
 import * as kv from "./kv_store.ts";
 import {
   fetchGoogleSheetData,
+  fetchSnapshotSheetData,
   transformSheetDataToNVR,
 } from "./google-sheets.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
@@ -233,6 +234,84 @@ app.post("/log-status", async (c) => {
     return c.json(
       {
         error: "Failed to log NVR status",
+        message: error instanceof Error ? error.message : String(error),
+      },
+      500,
+    );
+  }
+});
+
+// Snapshot Logging endpoint - fetches snapshot data and stores in nvr_snapshot_history
+app.post("/log-snapshots", async (c) => {
+  try {
+    const spreadsheetId = Deno.env.get("GOOGLE_SHEET_ID");
+    const apiKey = Deno.env.get("GOOGLE_SHEETS_API_KEY");
+
+    if (!spreadsheetId || !apiKey) {
+      return c.json({ error: "Google Sheets configuration not found" }, 500);
+    }
+
+    // Default range for Snapshot sheet
+    const range = Deno.env.get("GOOGLE_SHEET_SNAPSHOT_RANGE") || "Snapshot!A:H";
+
+    console.log(`Fetching Snapshot data from range: ${range}`);
+
+    const snapshotData = await fetchSnapshotSheetData({
+      spreadsheetId,
+      range,
+      apiKey,
+    });
+
+    if (snapshotData.length === 0) {
+      return c.json({
+        success: true,
+        logged: 0,
+        message: "No snapshot data found",
+      });
+    }
+
+    // Initialize Supabase client
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    // Prepare logs for insertion
+    // Map SnapshotSheetRow to table columns
+    const logs = snapshotData.map((row) => {
+      // Parse timestamp if needed, or use as is if it's already compatible
+      // Google Sheet might return '2026-01-29 23:30:03', which Postgres can usually handle
+      return {
+        camera_name: row.camera_name,
+        nvr_ip: row.nvr_ip,
+        nvr_name: row.nvr_name,
+        snapshot_status: row.snapshot,
+        comment: row.comment,
+        image_url: row.pic_link,
+        recorded_at: row.timestamp, // Assuming correct format, otherwise might need parsing
+      };
+    });
+
+    // Insert logs in batches
+    const { error } = await supabase.from("nvr_snapshot_history").insert(logs);
+
+    if (error) {
+      console.error("Snapshot database insertion error:", error);
+      throw new Error(`Failed to insert snapshot logs: ${error.message}`);
+    }
+
+    console.log(`Successfully logged ${logs.length} snapshot records`);
+
+    return c.json({
+      success: true,
+      logged: logs.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Error in /log-snapshots endpoint:", error);
+    return c.json(
+      {
+        error: "Failed to log snapshots",
         message: error instanceof Error ? error.message : String(error),
       },
       500,

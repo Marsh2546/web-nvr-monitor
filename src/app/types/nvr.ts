@@ -14,10 +14,15 @@ export interface NVRStatus {
   date_updated: string; // เวลาอัปเดตล่าสุด
 }
 
-export type IssueType = 'ping_onu' | 'ping_nvr' | 'hdd_status' | 'normal_view' | 'check_login';
+export type IssueType =
+  | "ping_onu"
+  | "ping_nvr"
+  | "hdd_status"
+  | "normal_view"
+  | "check_login";
 
 export interface IssueInfo {
   type: IssueType;
   label: string;
-  severity: 'high' | 'medium' | 'low';
+  severity: "high" | "medium" | "low";
 }

@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { NVRStatus } from "@/app/types/nvr";
-import { fetchNVRStatusHistory } from "@/app/services/nvrHistoryService";
+import {
+  fetchNVRStatusHistory,
+  fetchNVRSnapshots,
+  NVRSnapshot,
+} from "@/app/services/nvrHistoryService";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Input } from "@/app/components/ui/input";
@@ -121,6 +125,12 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
   // Chart data state
   const [chartData, setChartData] = useState<any[]>([]);
   const [isLoadingChart, setIsLoadingChart] = useState(false);
+
+  // Snapshots state
+  const [snapshots, setSnapshots] = useState<Record<string, NVRSnapshot[]>>({});
+  const [loadingSnapshots, setLoadingSnapshots] = useState<
+    Record<string, boolean>
+  >({});
 
   const today = new Date();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date()); // 28/1/2026
@@ -372,12 +382,25 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
   };
 
   // Toggle row expansion
-  const toggleRow = (id: string) => {
+  const toggleRow = async (id: string, nvrName: string) => {
     const newExpanded = new Set(expandedRows);
     if (newExpanded.has(id)) {
       newExpanded.delete(id);
     } else {
       newExpanded.add(id);
+
+      // Fetch snapshots if not already loaded
+      if (!snapshots[id]) {
+        setLoadingSnapshots((prev) => ({ ...prev, [id]: true }));
+        try {
+          const data = await fetchNVRSnapshots(nvrName);
+          setSnapshots((prev) => ({ ...prev, [id]: data }));
+        } catch (error) {
+          console.error("Error fetching snapshots:", error);
+        } finally {
+          setLoadingSnapshots((prev) => ({ ...prev, [id]: false }));
+        }
+      }
     }
     setExpandedRows(newExpanded);
   };
@@ -621,7 +644,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
         {/* Main Row - Compact */}
         <div
           className="p-3 cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => toggleRow(nvr.id)}
+          onClick={() => toggleRow(nvr.id, nvr.nvr)}
         >
           <div className="grid grid-cols-12 gap-3 items-center">
             {/* NVR ID & Location - 3 cols */}
@@ -914,6 +937,74 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Snapshots Section */}
+            <div className="mt-6 border-t border-slate-800/60 pt-6">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="size-6 rounded-md bg-indigo-500/20 flex items-center justify-center">
+                  <Camera className="size-3.5 text-indigo-400" />
+                </div>
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                  Camera Snapshots
+                </h4>
+                {loadingSnapshots[nvr.id] && (
+                  <span className="text-xs text-slate-500 animate-pulse ml-2">
+                    Loading snapshots...
+                  </span>
+                )}
+              </div>
+
+              {snapshots[nvr.id] && snapshots[nvr.id].length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {snapshots[nvr.id].map((snap) => (
+                    <div
+                      key={snap.id}
+                      className="group relative aspect-video bg-black rounded-lg overflow-hidden border border-slate-800"
+                    >
+                      {snap.image_url ? (
+                        <img
+                          src={snap.image_url}
+                          alt={snap.camera_name}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 bg-slate-900/50">
+                          <Camera className="size-8 opacity-20" />
+                          <span className="text-[10px] mt-2">No Image</span>
+                        </div>
+                      )}
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 pt-6 pointer-events-none">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white text-shadow-sm">
+                            {snap.camera_name}
+                          </span>
+                          {snap.snapshot_status === "TRUE" && (
+                            <Badge className="h-4 px-1 text-[8px] bg-green-500/80 text-white border-none">
+                              Active
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-0.5 truncate">
+                          {new Date(snap.recorded_at).toLocaleString("th-TH")}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                !loadingSnapshots[nvr.id] && (
+                  <div className="text-center py-8 text-slate-500 bg-slate-900/20 rounded-xl border border-dashed border-slate-800">
+                    <p className="text-sm">
+                      No snapshots available for this NVR.
+                    </p>
+                    <p className="text-xs opacity-60 mt-1">
+                      Snapshots are updated daily at midnight.
+                    </p>
+                  </div>
+                )
+              )}
             </div>
           </div>
         )}

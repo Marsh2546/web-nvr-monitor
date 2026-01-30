@@ -110,7 +110,9 @@ export default function App() {
                   <span className="inline-block size-1 rounded-full bg-slate-600"></span>
                   {(() => {
                     const PageClass = PageRegistry.getPage(currentPage);
-                    return PageClass ? PageClass.getDisplayName() : "Unknown Page";
+                    return PageClass
+                      ? PageClass.getDisplayName()
+                      : "Unknown Page";
                   })()}
                 </p>
               </div>
@@ -130,12 +132,12 @@ export default function App() {
                 {(() => {
                   const allPages = PageRegistry.getAllPages();
                   const buttons = [];
-                  
+
                   allPages.forEach((PageClass, pageName) => {
                     const isActive = currentPage === pageName;
                     const isDashboard = pageName === "dashboard";
                     const isStatus = pageName === "status";
-                    
+
                     buttons.push(
                       <Button
                         key={pageName}
@@ -148,16 +150,18 @@ export default function App() {
                             : "flex items-center gap-2 px-3 py-1.5 bg-slate-800/30 border-slate-700/50 text-slate-300 hover:text-white hover:bg-slate-700/50 text-xs font-semibold rounded-md transition-all"
                         }
                       >
-                        {isDashboard && <LayoutDashboard className="size-3.5" />}
+                        {isDashboard && (
+                          <LayoutDashboard className="size-3.5" />
+                        )}
                         {isStatus && <ClipboardList className="size-3.5" />}
                         {PageClass.getDisplayName()}
                         {/* {!isStatus && (
                           <div className="size-1.5 rounded-full bg-white/60 animate-pulse" />
                         )} */}
-                      </Button>
+                      </Button>,
                     );
                   });
-                  
+
                   return buttons;
                 })()}
               </div>
@@ -171,12 +175,12 @@ export default function App() {
         {(() => {
           const PageClass = PageRegistry.getPage(currentPage);
           if (!PageClass) return null;
-          
+
           const pageProps: PageWrapperProps = {
             nvrList: nvrData,
             onPageChange: setCurrentPage,
           };
-          
+
           return PageClass.render(pageProps);
         })()}
       </main>

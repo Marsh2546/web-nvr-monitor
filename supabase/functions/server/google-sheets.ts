@@ -19,49 +19,113 @@ export interface NVRSheetRow {
   date_updated: string;
 }
 
-export async function fetchGoogleSheetData(config: GoogleSheetsConfig): Promise<NVRSheetRow[]> {
+export interface SnapshotSheetRow {
+  camera_name: string;
+  nvr_ip: string;
+  nvr_name: string;
+  snapshot: string;
+  comment: string;
+  image: string; // This seems to be empty in user example, but kept for completeness
+  pic_link: string;
+  timestamp: string;
+}
+
+export async function fetchGoogleSheetData(
+  config: GoogleSheetsConfig,
+): Promise<NVRSheetRow[]> {
   const { spreadsheetId, range, apiKey } = config;
-  
+
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
-  
+
   try {
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Google Sheets API error:', errorText);
-      throw new Error(`Failed to fetch Google Sheets data: ${response.status} ${response.statusText}`);
+      console.error("Google Sheets API error:", errorText);
+      throw new Error(
+        `Failed to fetch Google Sheets data: ${response.status} ${response.statusText}`,
+      );
     }
-    
+
     const data = await response.json();
-    
+
     if (!data.values || data.values.length === 0) {
-      console.log('No data found in Google Sheets');
+      console.log("No data found in Google Sheets");
       return [];
     }
-    
+
     // Skip header row (first row)
     const rows = data.values.slice(1);
-    
+
     // Map to NVR objects
     const nvrData: NVRSheetRow[] = rows.map((row: string[]) => ({
-      nvr: row[0] || '',
-      location: row[1] || '',
-      district: row[2] || '',
-      onu_ip: row[3] || '',
-      ping_onu: row[4] || 'FALSE',
-      nvr_ip: row[5] || '',
-      ping_nvr: row[6] || 'FALSE',
-      hdd_status: row[7] || 'FALSE',
-      normal_view: row[8] || 'FALSE',
-      check_login: row[9] || 'FALSE',
-      camera_count: row[10] || '0',
-      date_updated: row[11] || '',
+      nvr: row[0] || "",
+      location: row[1] || "",
+      district: row[2] || "",
+      onu_ip: row[3] || "",
+      ping_onu: row[4] || "FALSE",
+      nvr_ip: row[5] || "",
+      ping_nvr: row[6] || "FALSE",
+      hdd_status: row[7] || "FALSE",
+      normal_view: row[8] || "FALSE",
+      check_login: row[9] || "FALSE",
+      camera_count: row[10] || "0",
+      date_updated: row[11] || "",
     }));
-    
+
     return nvrData;
   } catch (error) {
-    console.error('Error fetching Google Sheets data:', error);
+    console.error("Error fetching Google Sheets data:", error);
+    throw error;
+  }
+}
+
+export async function fetchSnapshotSheetData(
+  config: GoogleSheetsConfig,
+): Promise<SnapshotSheetRow[]> {
+  const { spreadsheetId, range, apiKey } = config;
+
+  // Assuming range is something like 'Snapshot!A:H'
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
+
+  try {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Google Sheets API error (Snapshot):", errorText);
+      throw new Error(
+        `Failed to fetch Google Sheets Snapshot data: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+
+    if (!data.values || data.values.length === 0) {
+      console.log("No snapshot data found in Google Sheets");
+      return [];
+    }
+
+    // Skip header row (first row)
+    const rows = data.values.slice(1);
+
+    // Map to Snapshot objects based on user provided columns:
+    // camera_name | nvr_ip | nvr_name | snapshot | comment | image | pic_link | timestamp
+    const snapshotData: SnapshotSheetRow[] = rows.map((row: string[]) => ({
+      camera_name: row[0] || "",
+      nvr_ip: row[1] || "",
+      nvr_name: row[2] || "",
+      snapshot: row[3] || "FALSE",
+      comment: row[4] || "",
+      image: row[5] || "",
+      pic_link: row[6] || "",
+      timestamp: row[7] || new Date().toISOString(), // Fallback to now if missing
+    }));
+
+    return snapshotData;
+  } catch (error) {
+    console.error("Error fetching Snapshot data:", error);
     throw error;
   }
 }
@@ -73,12 +137,12 @@ export function transformSheetDataToNVR(sheetData: NVRSheetRow[]) {
     location: row.location,
     district: row.district,
     onu_ip: row.onu_ip,
-    ping_onu: row.ping_onu.toUpperCase() === 'TRUE',
+    ping_onu: row.ping_onu.toUpperCase() === "TRUE",
     nvr_ip: row.nvr_ip,
-    ping_nvr: row.ping_nvr.toUpperCase() === 'TRUE',
-    hdd_status: row.hdd_status.toUpperCase() === 'TRUE',
-    normal_view: row.normal_view.toUpperCase() === 'TRUE',
-    check_login: row.check_login.toUpperCase() === 'TRUE',
+    ping_nvr: row.ping_nvr.toUpperCase() === "TRUE",
+    hdd_status: row.hdd_status.toUpperCase() === "TRUE",
+    normal_view: row.normal_view.toUpperCase() === "TRUE",
+    check_login: row.check_login.toUpperCase() === "TRUE",
     camera_count: parseInt(row.camera_count) || 0,
     date_updated: row.date_updated,
   }));
