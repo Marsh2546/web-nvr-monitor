@@ -1136,19 +1136,19 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
               <div className="flex items-center gap-2">
                 <div className="size-2 rounded-full bg-green-500" />
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                  Healthy
+                  Online
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="size-2 rounded-full bg-red-500" />
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                  Critical
+                  Down
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="size-2 rounded-full bg-amber-500" />
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                  Attention
+                  No Access
                 </span>
               </div>
             </div>

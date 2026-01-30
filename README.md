@@ -9,10 +9,11 @@ Run `npm i` to install the dependencies.
 Run `npm run dev` to start the development server.
 
 # --To do list--
+
 - [x] เอาเว็บขึ้น docker
 - [x] ออกแบบฐ้านข้อมูลจัดเก็บข้อมูล time series
 - [x] แก้ไข Pie chart ให้ขอบมน
-- [X] Map ข้อมูลให้ดึงข้อมูลได้เร็วขึ้น
+- [x] Map ข้อมูลให้ดึงข้อมูลได้เร็วขึ้น
 - [x] NVRStatusPage เพิ่มการแสดงข้อมูลย้อนหลัง
 - [x] แก้ไขการเพิ่ม sort by ข้อมูล
 - [x] แก้ไขเงื่อนของปํญหา Critical
@@ -20,18 +21,59 @@ Run `npm run dev` to start the development server.
 - [x] Dashboard เพิ่มการแสดงดูข้อมูลย้อนหลัง
 
 ## command เร่งด่วน 🔥🔥🔥
-- [X] แก้ไข pie chart แสดง label และ สีให้มองง่ายมากยิ่งขึ้น
-- [ ] Barchart เพิ่มคำอธิบาย Healthy สามารถใช้ได้ปกติ Attention login, View Critical ONU, NVR ,HDD ว่าแต่ละสีคืออะไร
-- [ ] เพิ่มปุ่ม filter ดูปัญหาแต่อุปกรณ์
-- [ ] เพิ่มปุ่ม export ส่วนที่ต้องการส่งออก
-    -[ ] export ทั้งหมด
-    -[ ] export ตาม filter
-- [ ] เปลี่ยนเงื่อนไข critical เมื่อ NVR ให้เป็นเทาทั้งแถวให้เข้าใจว่า NVR เสีย
-- [ ] เพิ่มการแจ้งเตือนแจ้งอุปกรณ์ที่ต้องเตรียม
-  - [ ] NVRเสีย => NVR
-  - [ ] ONUเสีย => มี 2 หน่วยงาน
-  - [ ] Multi brakertip or ระบบไฟฟ้าต่างๆ
-  - [ ] NT สายfiberoptic or ONUเสีย
+
+### Page: NVR Dashboard
+
+- [] แก้ไข BarChart Color
+
+### Page: NVR Status
+
+### Visualization
+
+- [x] ปรับ **Pie Chart**
+  - แสดง label ชัดเจน
+  - ปรับสีให้แยกสถานะได้ง่าย
+
+- [ ] ปรับ **Bar Chart**
+  - เพิ่มคำอธิบายสถานะสี
+    - 🟢 **Healthy** — ใช้งานได้ปกติ
+    - 🟡 **Attention** — Login / View
+    - 🔴 **Critical** — ONU / NVR / HDD
+
+---
+
+### 🎛️ Filter
+
+- [ ] เพิ่มปุ่ม **Filter**
+  - [ ] ดูปัญหาแยกตาม **ประเภทอุปกรณ์** (NVR / ONU / HDD / Camera)
+  - [ ] ดูปัญหาแยกตาม **เขตพื้นที่**
+
+---
+
+### 📤 Export
+
+- [ ] เพิ่มปุ่ม **Export**
+  - [ ] Export ข้อมูลทั้งหมด
+  - [ ] Export ตามเงื่อนไข Filter ที่เลือก
+
+---
+
+### 🔔 Alert & Notification
+
+- [ ] เพิ่มระบบแจ้งเตือนอุปกรณ์ที่ต้องดำเนินการ
+  - [ ] 🔴 **NVR เสีย** → แจ้งทีม NVR
+  - [ ] 🔴 **ONU เสีย** → แยกหน่วยงานรับผิดชอบ
+    - [ ] ⚡ **Multi Brakertip / ระบบไฟฟ้า**
+    - [ ] 🌐 **NT — สาย Fiber Optic / ONU**
+
+---
+
+### 🚩 Logic & Status
+
+- [ ] ปรับเงื่อนไข **Critical**
+  - หาก **NVR Down**
+    - ไม่สามารถเข้าถึง: ONU → HDD → Camera → Login
+    - แสดงสถานะ **Critical จาก NVR เป็นหลัก**
 
 # ถ้าสามารถดึงรูปภาพ และ ตำแหน่งได้
 
