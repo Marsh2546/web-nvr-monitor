@@ -1177,9 +1177,9 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="#1e293b"
-                    vertical={false}
-                    opacity={0.3}
+                    stroke="#3e4651"
+                    vertical={true}
+                    opacity={30}
                   />
 
                   <XAxis
