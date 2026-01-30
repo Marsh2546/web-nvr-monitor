@@ -74,6 +74,11 @@ Run `npm run dev` to start the development server.
 
 - [x] **สร้างฐานข้อมูลรูปภาพ**
 - [x] ดึงรูปภาพจาก Google Sheet เก็บ supabase
+- [] NVRStatusPage > แสดงรูป
+  - [] ปรับการแสดงรูป
+  - [] กดเข้าไปดูรูปใหญ่ได้
+  - [] แก้ไขแสดงรูปตามวันที่
+
 - [ ] แสดงภาพกล้องในรายละเอียดหน้า NVR Status
 - [ ] เพิ่ม Ai Detection image
 

@@ -55,6 +55,13 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/app/components/ui/dialog";
 
 // Animated Number Component
 const AnimatedNumber = ({
@@ -933,7 +940,20 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
 
                   <div className="flex items-center gap-2 text-[10px] text-slate-500 border-t border-slate-800/50 pt-2">
                     <Clock className="size-3" />
-                    <span>LAST TELEMETRY: {nvr.date_updated || "N/A"}</span>
+                    <span>
+                      LAST TELEMETRY:{" "}
+                      {nvr.date_updated
+                        ? new Date(nvr.date_updated).toLocaleString("th-TH", {
+                            timeZone: "Asia/Bangkok",
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            second: "2-digit",
+                          })
+                        : "N/A"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -958,39 +978,72 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
               {snapshots[nvr.id] && snapshots[nvr.id].length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {snapshots[nvr.id].map((snap) => (
-                    <div
-                      key={snap.id}
-                      className="group relative aspect-video bg-black rounded-lg overflow-hidden border border-slate-800"
-                    >
-                      {snap.image_url ? (
-                        <img
-                          src={snap.image_url}
-                          alt={snap.camera_name}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 bg-slate-900/50">
-                          <Camera className="size-8 opacity-20" />
-                          <span className="text-[10px] mt-2">No Image</span>
-                        </div>
-                      )}
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 pt-6 pointer-events-none">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-white text-shadow-sm">
-                            {snap.camera_name}
-                          </span>
-                          {snap.snapshot_status === "TRUE" && (
-                            <Badge className="h-4 px-1 text-[8px] bg-green-500/80 text-white border-none">
-                              Active
-                            </Badge>
+                    <Dialog key={snap.id}>
+                      <DialogTrigger asChild>
+                        <div className="group relative aspect-video bg-black rounded-lg overflow-hidden border border-slate-800 cursor-pointer">
+                          {snap.image_url ? (
+                            <img
+                              src={snap.image_url}
+                              alt={snap.camera_name}
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 bg-slate-900/50">
+                              <Camera className="size-8 opacity-20" />
+                              <span className="text-[10px] mt-2">No Image</span>
+                            </div>
                           )}
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 pt-6 pointer-events-none">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-white text-shadow-sm">
+                                {snap.camera_name}
+                              </span>
+                              {snap.snapshot_status === "TRUE" && (
+                                <Badge className="h-4 px-1 text-[8px] bg-green-500/80 text-white border-none">
+                                  Active
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-slate-400 mt-0.5 truncate">
+                              {new Date(snap.recorded_at).toLocaleString("th-TH")}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-[10px] text-slate-400 mt-0.5 truncate">
-                          {new Date(snap.recorded_at).toLocaleString("th-TH")}
+                      </DialogTrigger>
+
+                      {/* Large overlay content */}
+                      <DialogContent className="max-w-6xl p-0 bg-transparent shadow-none">
+                        <DialogTitle className="sr-only">{snap.camera_name}</DialogTitle>
+                        <DialogDescription className="sr-only">{new Date(snap.recorded_at).toLocaleString("th-TH")}</DialogDescription>
+                        <div className="bg-[#0b1220] rounded-lg overflow-hidden">
+                          {snap.image_url ? (
+                            <img
+                              src={snap.image_url}
+                              alt={snap.camera_name}
+                              className="w-full max-h-[80vh] object-contain bg-black"
+                            />
+                          ) : (
+                            <div className="w-full h-80 flex items-center justify-center text-slate-500 bg-slate-900/20">
+                              <Camera className="size-12 opacity-20" />
+                            </div>
+                          )}
+
+                          <div className="p-4 border-t border-slate-800/40">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-semibold text-slate-100 text-sm">
+                                  {snap.camera_name}
+                                </div>
+                                <div className="text-xs text-slate-400">
+                                  {new Date(snap.recorded_at).toLocaleString("th-TH")}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      </DialogContent>
+                    </Dialog>
                   ))}
                 </div>
               ) : (
