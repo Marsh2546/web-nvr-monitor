@@ -110,14 +110,20 @@ export async function fetchNVRStatusHistory(
 
 export async function fetchNVRSnapshots(
   nvrName: string,
+  startDate?: string,
+  endDate?: string,
 ): Promise<NVRSnapshot[]> {
   try {
-    // Get snapshots for the last 24 hours (or just the latest set)
-    // For now, let's get the latest set of snapshots for this NVR
-    const { data, error } = await supabase
+    let query = supabase
       .from("nvr_snapshot_history")
       .select("*")
-      .eq("nvr_name", nvrName)
+      .eq("nvr_name", nvrName);
+
+    if (startDate && endDate) {
+      query = query.gte("recorded_at", startDate).lte("recorded_at", endDate);
+    }
+
+    const { data, error } = await query
       .order("recorded_at", { ascending: false })
       .limit(20); // Assumption: max 20 cameras per NVR usually
 

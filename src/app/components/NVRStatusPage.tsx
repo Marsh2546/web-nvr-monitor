@@ -42,6 +42,7 @@ import {
   Clock,
   ChevronsLeft,
   ChevronsRight,
+  X,
 } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 import { th } from "date-fns/locale";
@@ -138,6 +139,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
   const [loadingSnapshots, setLoadingSnapshots] = useState<
     Record<string, boolean>
   >({});
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const today = new Date();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date()); // 28/1/2026
@@ -396,17 +398,31 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     } else {
       newExpanded.add(id);
 
-      // Fetch snapshots if not already loaded
-      if (!snapshots[id]) {
-        setLoadingSnapshots((prev) => ({ ...prev, [id]: true }));
-        try {
-          const data = await fetchNVRSnapshots(nvrName);
-          setSnapshots((prev) => ({ ...prev, [id]: data }));
-        } catch (error) {
-          console.error("Error fetching snapshots:", error);
-        } finally {
-          setLoadingSnapshots((prev) => ({ ...prev, [id]: false }));
-        }
+      // Always fetch fresh snapshots for the current selected date when expanding
+      setLoadingSnapshots((prev) => ({ ...prev, [id]: true }));
+      try {
+        // Create date range for the entire day in local timezone
+        const startOfDay = new Date(selectedDate);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(selectedDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        // Convert to ISO strings for fetchNVRSnapshots query
+        const startDate = startOfDay.toISOString();
+        const endDate = endOfDay.toISOString();
+
+        console.log(`Fetching snapshots for ${nvrName} for date range:`, {
+          startDate,
+          endDate,
+        });
+
+        const data = await fetchNVRSnapshots(nvrName, startDate, endDate);
+        setSnapshots((prev) => ({ ...prev, [id]: data }));
+      } catch (error) {
+        console.error("Error fetching snapshots:", error);
+      } finally {
+        setLoadingSnapshots((prev) => ({ ...prev, [id]: false }));
       }
     }
     setExpandedRows(newExpanded);
@@ -978,72 +994,40 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
               {snapshots[nvr.id] && snapshots[nvr.id].length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {snapshots[nvr.id].map((snap) => (
-                    <Dialog key={snap.id}>
-                      <DialogTrigger asChild>
-                        <div className="group relative aspect-video bg-black rounded-lg overflow-hidden border border-slate-800 cursor-pointer">
-                          {snap.image_url ? (
-                            <img
-                              src={snap.image_url}
-                              alt={snap.camera_name}
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 bg-slate-900/50">
-                              <Camera className="size-8 opacity-20" />
-                              <span className="text-[10px] mt-2">No Image</span>
-                            </div>
-                          )}
-                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 pt-6 pointer-events-none">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-white text-shadow-sm">
-                                {snap.camera_name}
-                              </span>
-                              {snap.snapshot_status === "TRUE" && (
-                                <Badge className="h-4 px-1 text-[8px] bg-green-500/80 text-white border-none">
-                                  Active
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="text-[10px] text-slate-400 mt-0.5 truncate">
-                              {new Date(snap.recorded_at).toLocaleString("th-TH")}
-                            </div>
-                          </div>
+                    <div
+                      key={snap.id}
+                      className="group relative aspect-video bg-black rounded-lg overflow-hidden border border-slate-800 cursor-pointer"
+                      onClick={() => setSelectedImage(snap.image_url)}
+                    >
+                      {snap.image_url ? (
+                        <img
+                          src={snap.image_url}
+                          alt={snap.camera_name}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 bg-slate-900/50">
+                          <Camera className="size-8 opacity-20" />
+                          <span className="text-[10px] mt-2">No Image</span>
                         </div>
-                      </DialogTrigger>
-
-                      {/* Large overlay content */}
-                      <DialogContent className="max-w-6xl p-0 bg-transparent shadow-none">
-                        <DialogTitle className="sr-only">{snap.camera_name}</DialogTitle>
-                        <DialogDescription className="sr-only">{new Date(snap.recorded_at).toLocaleString("th-TH")}</DialogDescription>
-                        <div className="bg-[#0b1220] rounded-lg overflow-hidden">
-                          {snap.image_url ? (
-                            <img
-                              src={snap.image_url}
-                              alt={snap.camera_name}
-                              className="w-full max-h-[80vh] object-contain bg-black"
-                            />
-                          ) : (
-                            <div className="w-full h-80 flex items-center justify-center text-slate-500 bg-slate-900/20">
-                              <Camera className="size-12 opacity-20" />
-                            </div>
+                      )}
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 pt-6 pointer-events-none">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white text-shadow-sm">
+                            {snap.camera_name}
+                          </span>
+                          {snap.snapshot_status === "TRUE" && (
+                            <Badge className="h-4 px-1 text-[8px] bg-green-500/80 text-white border-none">
+                              Active
+                            </Badge>
                           )}
-
-                          <div className="p-4 border-t border-slate-800/40">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <div className="font-semibold text-slate-100 text-sm">
-                                  {snap.camera_name}
-                                </div>
-                                <div className="text-xs text-slate-400">
-                                  {new Date(snap.recorded_at).toLocaleString("th-TH")}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
                         </div>
-                      </DialogContent>
-                    </Dialog>
+                        <div className="text-[10px] text-slate-400 mt-0.5 truncate">
+                          {new Date(snap.recorded_at).toLocaleString("th-TH")}
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
               ) : (
@@ -1531,6 +1515,29 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Big Image Viewer Modal */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-300"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div className="relative max-w-[90vw] max-h-[90vh] overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
+            <button
+              className="absolute top-4 right-4 z-10 p-2 bg-black/50 hover:bg-black/80 text-white rounded-full transition-colors backdrop-blur-md"
+              onClick={() => setSelectedImage(null)}
+            >
+              <X className="size-6" />
+            </button>
+            <img
+              src={selectedImage}
+              alt="CCTV Snapshot"
+              className="w-full h-full object-contain animate-in zoom-in-95 duration-500"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 

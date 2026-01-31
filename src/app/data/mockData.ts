@@ -1,4 +1,4 @@
-import { RepairTicket } from '@/app/types/repair';
+ไimport { RepairTicket } from '@/app/types/repair';
 
 export const mockRepairTickets: RepairTicket[] = [
   {
