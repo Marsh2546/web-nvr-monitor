@@ -22,51 +22,41 @@ Run `npm run dev` to start the development server.
 
 ## command เร่งด่วน 🔥🔥🔥
 
-### Page: NVR Dashboard
-
-- [] แก้ไข BarChart Color
-
-### Page: NVR Status
-
-### Visualization
+- [x] แก้ไข BarChart Color
 
 - [x] ปรับ **Pie Chart**
   - แสดง label ชัดเจน
   - ปรับสีให้แยกสถานะได้ง่าย
 
-- [ ] ปรับ **Bar Chart**
+- [x] ปรับ **Bar Chart**
   - เพิ่มคำอธิบายสถานะสี
-    - 🟢 **Healthy** — ใช้งานได้ปกติ
-    - 🟡 **Attention** — Login / View
-    - 🔴 **Critical** — ONU / NVR / HDD
+    - 🟢 **Online** — ใช้งานได้ปกติ
+    - 🟡 **No Access** — Login / View
+    - 🔴 **Down** — ONU / NVR / HDD
 
 ### 🎛️ Filter
-
-- [ ] เพิ่มปุ่ม **Filter**
-  - [ ] ดูปัญหาแยกตาม **ประเภทอุปกรณ์** (NVR / ONU / HDD / Camera)
-  - [ ] ดูปัญหาแยกตาม **เขตพื้นที่**
+- [x] เพิ่มปุ่ม **Filter**
+  - [x] ดูปัญหาแยกตาม **ประเภทอุปกรณ์** (NVR / ONU / HDD / Camera)
+  - [x] ดูปัญหาแยกตาม **เขตพื้นที่**
+ 
+### Logic & Status    
+- [ ] ปรับเงื่อนไข **Critical**
+  - ONU Down -> ⛔ NVR → HDD → Camera → Login
+  - NVR Down -> ⛔ HDD → Camera → Login
+  - HDD Down -> ⛔ Camera → Login 
+  - check_Login fail -> ⛔ normal_view
 
 ### 📤 Export
-
 - [ ] เพิ่มปุ่ม **Export**
   - [ ] Export ข้อมูลทั้งหมด
   - [ ] Export ตามเงื่อนไข Filter ที่เลือก
 
 ### 🔔 Alert & Notification
-
-- [ ] เพิ่มระบบแจ้งเตือนอุปกรณ์ที่ต้องดำเนินการ
+- [ ] เพิ่มระบบแจ้งเตือนอุปกรณ์ที่ต้องดำเนินการ --> ✉️ sent list to email
   - [ ] 🔴 **NVR เสีย** → แจ้งทีม NVR
   - [ ] 🔴 **ONU เสีย** → แยกหน่วยงานรับผิดชอบ
     - [ ] ⚡ **Multi Brakertip / ระบบไฟฟ้า**
     - [ ] 🌐 **NT — สาย Fiber Optic / ONU**
-
-### Logic & Status
-
-- [ ] ปรับเงื่อนไข **Critical**
-  - **ONU Down** ⛔ ไม่สามารถเข้าถึง: NVR → HDD → Camera → Login
-  - **NVR Down** ⛔ ตัวอุปกรณ์กล้องเสียหาย
-  - **HDD Down** ⛔ ไม่สามารถเก็บบันทึกภาพได้
-  - **Camera Down** ⛔ ไม่สามารถดูภาพได้
 
 ---
 

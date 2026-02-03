@@ -113,6 +113,7 @@ interface NVRStatusPageProps {
 export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState<string>("all");
+  const [selectedIssueType, setSelectedIssueType] = useState<string>("all");
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
@@ -357,21 +358,29 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     new Set(supabaseData.map((nvr) => nvr.district)),
   ).sort();
 
-  // Check if NVR has critical issues (ONU/NVR/HDD failure)
+  // Check if NVR has critical issues based on hierarchy
   const hasCriticalIssues = (nvr: NVRStatus) => {
     return (
-      !nvr.ping_onu || // ONU down
-      !nvr.ping_nvr || // NVR down
-      !nvr.hdd_status // HDD failure
+      !nvr.ping_onu || // ONU Down - affects everything below
+      !nvr.ping_nvr || // NVR Down - affects HDD, Camera, Login
+      !nvr.hdd_status || // HDD Down - affects Camera, Login
+      !nvr.normal_view // Camera Down - affects Login
     );
   };
 
-  // Check if NVR has attention issues (View/Login problems)
+  // Check if NVR has attention issues (Login problem only when no critical issues)
   const hasAttentionIssues = (nvr: NVRStatus) => {
-    return (
-      !nvr.normal_view || // View problem
-      !nvr.check_login // Login problem
-    );
+    return !hasCriticalIssues(nvr) && !nvr.check_login; // Login problem only
+  };
+
+  // Get issue status with hierarchy
+  const getIssueStatus = (nvr: NVRStatus) => {
+    if (!nvr.ping_onu) return "onu"; // ONU Down - highest priority
+    if (!nvr.ping_nvr) return "nvr"; // NVR Down
+    if (!nvr.hdd_status) return "hdd"; // HDD Down
+    if (!nvr.normal_view) return "view"; // Camera Down
+    if (!nvr.check_login) return "login"; // Login Problem
+    return "healthy"; // No issues
   };
 
   // Check if NVR has any issues (for backward compatibility)
@@ -464,6 +473,26 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     });
   };
 
+  // Check specific issue types based on hierarchy
+  const hasSpecificIssue = (nvr: NVRStatus, issueType: string) => {
+    const status = getIssueStatus(nvr);
+    
+    switch (issueType) {
+      case 'onu':
+        return status === "onu"; // Only show if ONU is the root cause
+      case 'nvr':
+        return status === "nvr"; // Only show if NVR is the root cause
+      case 'hdd':
+        return status === "hdd"; // Only show if HDD is the root cause
+      case 'view':
+        return status === "view"; // Only show if Camera is the root cause
+      case 'login':
+        return status === "login"; // Only show if Login is the root cause
+      default:
+        return false;
+    }
+  };
+
   // Filter NVR list from Supabase data
   const filteredNVRList = sortItems(
     supabaseData.filter((nvr) => {
@@ -471,10 +500,16 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
         nvr.nvr.toLowerCase().includes(searchTerm.toLowerCase()) ||
         nvr.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
         nvr.district.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesDistrict =
-        selectedDistrict === "all" || nvr.district === selectedDistrict;
-      return matchesSearch && matchesDistrict;
-    }),
+      const matchesDistrict = selectedDistrict === "all" || nvr.district === selectedDistrict;
+      
+      // Filter by specific issue type
+      let matchesIssueType = true;
+      if (selectedIssueType !== "all") {
+        matchesIssueType = hasSpecificIssue(nvr, selectedIssueType);
+      }
+      
+      return matchesSearch && matchesDistrict && matchesIssueType;
+    })
   );
 
   const normalNVRs = filteredNVRList.filter((nvr) => !hasIssues(nvr));
@@ -516,6 +551,12 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
 
   const handleDistrictChange = (value: string) => {
     setSelectedDistrict(value);
+    setCurrentPage(1);
+    setExpandedRows(new Set());
+  };
+
+  const handleIssueTypeChange = (value: string) => {
+    setSelectedIssueType(value);
     setCurrentPage(1);
     setExpandedRows(new Set());
   };
@@ -638,6 +679,47 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     );
   };
 
+  // Get status color for individual components based on hierarchy
+  const getComponentStatus = (nvr: NVRStatus, component: string) => {
+    const issueStatus = getIssueStatus(nvr);
+    
+    // If this component is the root cause, show it as failed
+    if (component === "onu" && issueStatus === "onu") return "failed";
+    if (component === "nvr" && issueStatus === "nvr") return "failed";
+    if (component === "hdd" && issueStatus === "hdd") return "failed";
+    if (component === "view" && issueStatus === "view") return "failed";
+    if (component === "login" && issueStatus === "login") return "failed";
+    
+    // If this component is affected by a higher level failure, show it as affected
+    if (component === "nvr" && issueStatus === "onu") return "affected";
+    if (component === "hdd" && (issueStatus === "onu" || issueStatus === "nvr")) return "affected";
+    if (component === "view" && (issueStatus === "onu" || issueStatus === "nvr" || issueStatus === "hdd")) return "affected";
+    if (component === "login" && issueStatus !== "healthy") return "affected";
+    
+    return "normal";
+  };
+
+  // Get component styling based on status
+  const getComponentStyling = (status: string) => {
+    switch (status) {
+      case "failed":
+        return "bg-red-500/5 border-red-500/20 shadow-[inset_0_0_10px_rgba(239,68,68,0.05)]";
+      case "affected":
+        return "bg-orange-500/5 border-orange-500/20 shadow-[inset_0_0_10px_rgba(251,146,60,0.05)]";
+      default:
+        return "bg-slate-950/40 border-slate-800";
+    }
+  };
+
+  // Get component icon color
+  const getComponentIconColor = (status: string) => {
+    switch (status) {
+      case "failed": return "text-red-400";
+      case "affected": return "text-orange-400";
+      default: return "text-slate-500";
+    }
+  };
+
   // Status icon component
   const StatusIcon = ({ status }: { status: boolean }) =>
     status ? (
@@ -647,21 +729,30 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     );
 
   const renderNVRRow = (nvr: NVRStatus) => {
+    const issueStatus = getIssueStatus(nvr);
     const isCritical = hasCriticalIssues(nvr);
-    const isAttention = hasAttentionIssues(nvr) && !isCritical;
+    const isAttention = hasAttentionIssues(nvr);
     const isNormal = !hasIssues(nvr);
     const isExpanded = expandedRows.has(nvr.id);
+
+    // Determine color based on hierarchy
+    const getStatusColor = () => {
+      switch (issueStatus) {
+        case "onu": return "border-red-500/40 bg-red-500/5 hover:bg-red-500/10 shadow-[0_0_15px_rgba(239,68,68,0.15)]";
+        case "nvr": return "border-orange-500/40 bg-orange-500/5 hover:bg-orange-500/10 shadow-[0_0_15px_rgba(251,146,60,0.15)]";
+        case "hdd": return "border-amber-500/40 bg-amber-500/5 hover:bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.15)]";
+        case "view": return "border-yellow-500/40 bg-yellow-500/5 hover:bg-yellow-500/10 shadow-[0_0_15px_rgba(234,179,8,0.15)]";
+        case "login": return "border-lime-500/40 bg-lime-500/5 hover:bg-lime-500/10 shadow-[0_0_15px_rgba(163,230,53,0.15)]";
+        default: return "border-slate-800 bg-slate-900/40 hover:bg-slate-900/60";
+      }
+    };
 
     return (
       <div
         key={nvr.id}
         className={cn(
           "border rounded-xl transition-all duration-300 overflow-hidden",
-          isNormal
-            ? "border-slate-800 bg-slate-900/40 hover:bg-slate-900/60"
-            : isCritical
-              ? "border-red-500/40 bg-red-500/5 hover:bg-red-500/10 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
-              : "border-amber-500/40 bg-amber-500/5 hover:bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.1)]",
+          getStatusColor()
         )}
       >
         {/* Main Row - Compact */}
@@ -704,7 +795,8 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                   title="ONU Ping"
                 >
                   <Wifi
-                    className={`size-4 ${nvr.ping_onu ? "text-green-500" : "text-red-500"}`}
+                    className={`size-4 ${getComponentStatus(nvr, "onu") === "normal" ? "text-green-500" : 
+                      getComponentStatus(nvr, "onu") === "failed" ? "text-red-500" : "text-orange-500"}`}
                   />
                   <span className="text-[10px] text-muted-foreground">ONU</span>
                 </div>
@@ -713,7 +805,8 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                   title="NVR Ping"
                 >
                   <Server
-                    className={`size-4 ${nvr.ping_nvr ? "text-green-500" : "text-red-500"}`}
+                    className={`size-4 ${getComponentStatus(nvr, "nvr") === "normal" ? "text-green-500" : 
+                      getComponentStatus(nvr, "nvr") === "failed" ? "text-red-500" : "text-orange-500"}`}
                   />
                   <span className="text-[10px] text-muted-foreground">NVR</span>
                 </div>
@@ -722,7 +815,8 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                   title="HDD Status"
                 >
                   <HardDrive
-                    className={`size-4 ${nvr.hdd_status ? "text-green-500" : "text-red-500"}`}
+                    className={`size-4 ${getComponentStatus(nvr, "hdd") === "normal" ? "text-green-500" : 
+                      getComponentStatus(nvr, "hdd") === "failed" ? "text-red-500" : "text-orange-500"}`}
                   />
                   <span className="text-[10px] text-muted-foreground">HDD</span>
                 </div>
@@ -731,7 +825,8 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                   title="Normal View"
                 >
                   <Eye
-                    className={`size-4 ${nvr.normal_view ? "text-green-500" : "text-red-500"}`}
+                    className={`size-4 ${getComponentStatus(nvr, "view") === "normal" ? "text-green-500" : 
+                      getComponentStatus(nvr, "view") === "failed" ? "text-red-500" : "text-orange-500"}`}
                   />
                   <span className="text-[10px] text-muted-foreground">
                     View
@@ -742,7 +837,8 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                   title="Login Status"
                 >
                   <LogIn
-                    className={`size-4 ${nvr.check_login ? "text-green-500" : "text-red-500"}`}
+                    className={`size-4 ${getComponentStatus(nvr, "login") === "normal" ? "text-green-500" : 
+                      getComponentStatus(nvr, "login") === "failed" ? "text-red-500" : "text-orange-500"}`}
                   />
                   <span className="text-[10px] text-muted-foreground">
                     Login
@@ -799,16 +895,14 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 <div
                   className={cn(
                     "p-3 rounded-xl border flex flex-col gap-2 transition-all",
-                    nvr.ping_onu
-                      ? "bg-slate-950/40 border-slate-800"
-                      : "bg-red-500/5 border-red-500/20 shadow-[inset_0_0_10px_rgba(239,68,68,0.05)]",
+                    getComponentStyling(getComponentStatus(nvr, "onu"))
                   )}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-300">
                       ONU GATEWAY
                     </span>
-                    <StatusIcon status={nvr.ping_onu} />
+                    <StatusIcon status={getComponentStatus(nvr, "onu") === "normal"} />
                   </div>
                   <div className="flex items-center justify-between mt-1">
                     <span className="text-[10px] text-slate-500 font-mono">
@@ -826,16 +920,14 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 <div
                   className={cn(
                     "p-3 rounded-xl border flex flex-col gap-2 transition-all",
-                    nvr.ping_nvr
-                      ? "bg-slate-950/40 border-slate-800"
-                      : "bg-red-500/5 border-red-500/20 shadow-[inset_0_0_10px_rgba(239,68,68,0.05)]",
+                    getComponentStyling(getComponentStatus(nvr, "nvr"))
                   )}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-300">
                       NVR TERMINAL
                     </span>
-                    <StatusIcon status={nvr.ping_nvr} />
+                    <StatusIcon status={getComponentStatus(nvr, "nvr") === "normal"} />
                   </div>
                   <div className="flex items-center justify-between mt-1">
                     <span className="text-[10px] text-slate-500 font-mono">
@@ -866,16 +958,15 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                   <div
                     className={cn(
                       "p-3 rounded-xl border flex items-center justify-between transition-all",
-                      nvr.hdd_status
-                        ? "bg-slate-950/40 border-slate-800"
-                        : "bg-red-500/5 border-red-500/20",
+                      getComponentStyling(getComponentStatus(nvr, "hdd"))
                     )}
                   >
                     <div className="flex items-center gap-3">
                       <div
                         className={cn(
                           "size-2 rounded-full",
-                          nvr.hdd_status ? "bg-green-500" : "bg-red-500",
+                          getComponentStatus(nvr, "hdd") === "normal" ? "bg-green-500" : 
+                          getComponentStatus(nvr, "hdd") === "failed" ? "bg-red-500" : "bg-orange-500"
                         )}
                       ></div>
                       <span className="text-xs font-bold text-slate-300">
@@ -885,7 +976,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                     <HardDrive
                       className={cn(
                         "size-4",
-                        nvr.hdd_status ? "text-slate-500" : "text-red-400",
+                        getComponentIconColor(getComponentStatus(nvr, "hdd"))
                       )}
                     />
                   </div>
@@ -893,26 +984,51 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                   <div
                     className={cn(
                       "p-3 rounded-xl border flex items-center justify-between transition-all",
-                      nvr.check_login
-                        ? "bg-slate-950/40 border-slate-800"
-                        : "bg-red-500/5 border-red-500/20",
+                      getComponentStyling(getComponentStatus(nvr, "view"))
                     )}
                   >
                     <div className="flex items-center gap-3">
                       <div
                         className={cn(
                           "size-2 rounded-full",
-                          nvr.check_login ? "bg-green-500" : "bg-red-500",
+                          getComponentStatus(nvr, "view") === "normal" ? "bg-green-500" : 
+                          getComponentStatus(nvr, "view") === "failed" ? "bg-red-500" : "bg-orange-500"
                         )}
                       ></div>
                       <span className="text-xs font-bold text-slate-300">
-                        PROTOCOL LOGIN
+                        CAMERA VIEW
+                      </span>
+                    </div>
+                    <Eye
+                      className={cn(
+                        "size-4",
+                        getComponentIconColor(getComponentStatus(nvr, "view"))
+                      )}
+                    />
+                  </div>
+
+                  <div
+                    className={cn(
+                      "p-3 rounded-xl border flex items-center justify-between transition-all",
+                      getComponentStyling(getComponentStatus(nvr, "login"))
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "size-2 rounded-full",
+                          getComponentStatus(nvr, "login") === "normal" ? "bg-green-500" : 
+                          getComponentStatus(nvr, "login") === "failed" ? "bg-red-500" : "bg-orange-500"
+                        )}
+                      ></div>
+                      <span className="text-xs font-bold text-slate-300">
+                        SYSTEM LOGIN
                       </span>
                     </div>
                     <LogIn
                       className={cn(
                         "size-4",
-                        nvr.check_login ? "text-slate-500" : "text-red-400",
+                        getComponentIconColor(getComponentStatus(nvr, "login"))
                       )}
                     />
                   </div>
@@ -1414,8 +1530,8 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
               </TabsTrigger>
             </TabsList>
 
-            <div className="flex gap-3 w-full md:w-auto">
-              <div className="relative flex-1 md:w-64">
+             <div className="flex gap-3 w-full">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-500" />
                 <Input
                   placeholder="Search NVR, Location..."
@@ -1428,7 +1544,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 value={selectedDistrict}
                 onValueChange={handleDistrictChange}
               >
-                <SelectTrigger className="w-40 h-10 bg-slate-950/50 border-slate-800 text-slate-200 rounded-xl">
+                <SelectTrigger className="w-36 h-10 bg-slate-950/50 border-slate-800 text-slate-200 rounded-xl">
                   <SelectValue placeholder="District" />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-900 border-slate-800 text-slate-200">
@@ -1438,6 +1554,22 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                       {d}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={selectedIssueType}
+                onValueChange={handleIssueTypeChange}
+              >
+                <SelectTrigger className="w-36 h-10 bg-slate-950/50 border-slate-800 text-slate-200 rounded-xl">
+                  <SelectValue placeholder="Issue Type" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-slate-800 text-slate-200">
+                  <SelectItem value="all">All Issues</SelectItem>
+                  <SelectItem value="onu">ONU Down</SelectItem>
+                  <SelectItem value="nvr">NVR Down</SelectItem>
+                  <SelectItem value="hdd">HDD Failure</SelectItem>
+                  <SelectItem value="view">Camera Down</SelectItem>
+                  <SelectItem value="login">Login Problem</SelectItem>
                 </SelectContent>
               </Select>
             </div>
