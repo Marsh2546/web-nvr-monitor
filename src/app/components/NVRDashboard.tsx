@@ -121,21 +121,29 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
     return () => clearInterval(interval);
   }, []);
 
-  // Check if NVR has critical issues (ONU/NVR/HDD failure)
+  // Get issue status with hierarchy
+  const getIssueStatus = (nvr: NVRStatus) => {
+    if (!nvr.ping_onu) return "onu"; // ONU Down - highest priority
+    if (!nvr.ping_nvr) return "nvr"; // NVR Down
+    if (!nvr.hdd_status) return "hdd"; // HDD Down
+    if (!nvr.normal_view) return "view"; // Camera Down
+    if (!nvr.check_login) return "login"; // Login Problem
+    return "healthy"; // No issues
+  };
+
+  // Check if NVR has critical issues based on hierarchy
   const hasCriticalIssues = (nvr: NVRStatus) => {
     return (
-      !nvr.ping_onu || // ONU down
-      !nvr.ping_nvr || // NVR down
-      !nvr.hdd_status // HDD failure
+      !nvr.ping_onu || // ONU Down - affects everything below
+      !nvr.ping_nvr || // NVR Down - affects HDD, Camera, Login
+      !nvr.hdd_status || // HDD Down - affects Camera, Login
+      !nvr.normal_view // Camera Down - affects Login
     );
   };
 
-  // Check if NVR has attention issues (View/Login problems)
+  // Check if NVR has attention issues (Login problem only when no critical issues)
   const hasAttentionIssues = (nvr: NVRStatus) => {
-    return (
-      !nvr.normal_view || // View problem
-      !nvr.check_login // Login problem
-    );
+    return !hasCriticalIssues(nvr) && !nvr.check_login; // Login problem only
   };
 
   // Check if NVR has any issues (for backward compatibility)
@@ -147,12 +155,15 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
   const nvrWithIssues = useMemo(
     () =>
       nvrList.map((nvr): NVRWithIssues => {
+        const issueStatus = getIssueStatus(nvr);
         const issues: string[] = [];
-        if (!nvr.ping_onu) issues.push("ONU Ping");
-        if (!nvr.ping_nvr) issues.push("NVR Ping");
-        if (!nvr.hdd_status) issues.push("HDD");
-        if (!nvr.normal_view) issues.push("View");
-        if (!nvr.check_login) issues.push("Login");
+        
+        // Add issues based on hierarchy
+        if (issueStatus === "onu") issues.push("ONU Ping");
+        if (issueStatus === "nvr") issues.push("NVR Ping");
+        if (issueStatus === "hdd") issues.push("HDD");
+        if (issueStatus === "view") issues.push("Camera View");
+        if (issueStatus === "login") issues.push("Login Access");
 
         return {
           ...nvr,
@@ -176,12 +187,12 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
       (nvr) => nvr.hasAttentionIssues && !nvr.hasCriticalIssues,
     );
 
-    // Count individual issues
-    const pingOnuFail = nvrWithIssues.filter((nvr) => !nvr.ping_onu).length;
-    const pingNvrFail = nvrWithIssues.filter((nvr) => !nvr.ping_nvr).length;
-    const hddFail = nvrWithIssues.filter((nvr) => !nvr.hdd_status).length;
-    const viewFail = nvrWithIssues.filter((nvr) => !nvr.normal_view).length;
-    const loginFail = nvrWithIssues.filter((nvr) => !nvr.check_login).length;
+    // Count individual issues based on root cause
+    const onuDown = nvrWithIssues.filter((nvr) => getIssueStatus(nvr) === "onu").length;
+    const nvrDown = nvrWithIssues.filter((nvr) => getIssueStatus(nvr) === "nvr").length;
+    const hddDown = nvrWithIssues.filter((nvr) => getIssueStatus(nvr) === "hdd").length;
+    const cameraDown = nvrWithIssues.filter((nvr) => getIssueStatus(nvr) === "view").length;
+    const loginProblem = nvrWithIssues.filter((nvr) => getIssueStatus(nvr) === "login").length;
 
     return {
       totalNVR,
@@ -189,11 +200,11 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
       problemNVR,
       criticalNVRs,
       attentionNVRs,
-      pingOnuFail,
-      pingNvrFail,
-      hddFail,
-      viewFail,
-      loginFail,
+      onuDown,
+      nvrDown,
+      hddDown,
+      cameraDown,
+      loginProblem,
     };
   }, [nvrWithIssues]);
 
@@ -218,32 +229,31 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
     ];
 
     const issueData = [
-      // Critical Issues (สีแดง-ส้ม) - ปัญหาร้ายแรง
+      // Critical Issues (สีแดง-ส้ม) - ปัญหาร้ายแรงตามลำดับชั้น
       {
         name: "ONU Down",
-        value: stats.pingOnuFail,
-        fill: "#dc2626", // red-600 - ปัญหาเครือข่าย ONU
+        value: stats.onuDown,
+        fill: "#dc2626", // red-600 - ปัญหาเครือข่าย ONU (ระดับ 1)
       },
       {
         name: "NVR Down",
-        value: stats.pingNvrFail,
-        fill: "#ef4444", // red-500 - ปัญหาเครือข่าย NVR
+        value: stats.nvrDown,
+        fill: "#ef4444", // red-500 - ปัญหาเครือข่าย NVR (ระดับ 2)
       },
       {
         name: "Disk Failure",
-        value: stats.hddFail,
-        fill: "#f97316", // orange-500 - ปัญหาฮาร์ดดิสก์
-      },
-      // Attention Issues (สีเหลือง) - ปัญหาที่ต้องดูแล
-      {
-        name: "No Video",
-        value: stats.viewFail,
-        fill: "#eab308", // yellow-500 - ปัญหาการแสดงผล
+        value: stats.hddDown,
+        fill: "#f97316", // orange-500 - ปัญหาฮาร์ดดิสก์ (ระดับ 3)
       },
       {
-        name: "Access Error",
-        value: stats.loginFail,
-        fill: "#facc15", // yellow-400 - ปัญหาการเข้าสู่ระบบ
+        name: "Camera Down",
+        value: stats.cameraDown,
+        fill: "#eab308", // yellow-500 - ปัญหากล้อง (ระดับ 4)
+      },
+      {
+        name: "Login Problem",
+        value: stats.loginProblem,
+        fill: "#facc15", // yellow-400 - ปัญหาการเข้าสู่ระบบ (ระดับ 5)
       },
     ].filter((item) => item.value > 0);
 
@@ -790,7 +800,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 </span>
               </div>
               <div className="text-xl font-bold text-rose-500">
-                {stats.pingOnuFail}
+                {stats.onuDown}
               </div>
               <span className="text-[9px] text-slate-600 font-medium">
                 No response
@@ -804,7 +814,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 </span>
               </div>
               <div className="text-xl font-bold text-rose-500">
-                {stats.pingNvrFail}
+                {stats.nvrDown}
               </div>
               <span className="text-[9px] text-slate-600 font-medium">
                 Connection timeout
@@ -818,7 +828,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 </span>
               </div>
               <div className="text-xl font-bold text-rose-500">
-                {stats.hddFail}
+                {stats.hddDown}
               </div>
               <span className="text-[9px] text-slate-600 font-medium">
                 Write errors
@@ -832,7 +842,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 </span>
               </div>
               <div className="text-xl font-bold text-amber-500">
-                {stats.viewFail}
+                {stats.cameraDown}
               </div>
               <span className="text-[9px] text-slate-600 font-medium">
                 Camera obstruction
@@ -846,7 +856,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 </span>
               </div>
               <div className="text-xl font-bold text-amber-500">
-                {stats.loginFail}
+                {stats.loginProblem}
               </div>
               <span className="text-[9px] text-slate-600 font-medium">
                 Auth failed
