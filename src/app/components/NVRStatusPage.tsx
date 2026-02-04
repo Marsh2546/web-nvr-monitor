@@ -22,28 +22,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
-import { cn } from "@/app/components/ui/utils";
 import {
   ChevronDown,
-  ChevronUp,
-  ChevronLeft,
   ChevronRight,
+  ChevronLeft,
+  ChevronUp,
+  ChevronFirst,
+  ChevronLast,
   Search,
-  Calendar,
-  Server,
-  CheckCircle,
-  AlertTriangle,
-  XCircle,
+  Filter,
   Wifi,
+  Server,
   HardDrive,
-  Camera,
   Eye,
   LogIn,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
   Clock,
-  ChevronsLeft,
-  ChevronsRight,
+  Calendar,
+  Camera,
+  MapPin,
+  Info,
+  ChevronDown as ChevronDownIcon,
+  Menu,
   X,
+  TrendingUp,
+  TrendingDown,
+  BarChart3,
+ List,
+ ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
+import CriticalIssuesAnalysis from "@/app/components/CriticalIssuesAnalysis";
 import { DayPicker } from "react-day-picker";
 import { th } from "date-fns/locale";
 import {
@@ -63,6 +74,11 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/app/components/ui/dialog";
+
+// Utility function for className merging
+const cn = (...inputs: any[]) => {
+  return inputs.filter(Boolean).join(' ');
+};
 
 // Animated Number Component
 const AnimatedNumber = ({
@@ -413,10 +429,10 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     );
   };
 
-  // Check if NVR has attention issues (Login problem only when no critical issues)
+  // Check if NVR has attention issues (View Down only when no critical issues)
   const hasAttentionIssues = (nvr: NVRStatus) => {
     const status = calculateEffectiveStatus(nvr);
-    return !hasCriticalIssues(nvr) && !status.login; // Login problem only
+    return !hasCriticalIssues(nvr) && !status.normal_view; // View Down only
   };
 
   // Check if NVR has any issues (for backward compatibility)
@@ -722,7 +738,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     if (!status.onu) return "onu"; // ONU Down - highest priority
     if (!status.nvr) return "nvr"; // NVR Down
     if (!status.hdd) return "hdd"; // HDD Down - does not affect Camera, Login
-    if (!status.normal_view) return "view"; // Camera Down - affects Login
+    if (!status.normal_view) return "view"; // View Down - affects Login
     if (!status.login) return "login"; // Login Problem
     return "healthy"; // No issues
   };
@@ -1354,35 +1370,6 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
             </div>
           </div>
 
-          {/* Attention */}
-          <div className="bg-[#0f172a] p-5 rounded-2xl border border-slate-800/50 flex flex-col justify-between relative overflow-hidden group">
-            <div className="flex items-center justify-between mb-2">
-              <div className="bg-amber-500/10 p-2 rounded-lg group-hover:bg-amber-500/20 transition-colors">
-                <AlertTriangle className="size-5 text-amber-500" />
-              </div>
-              <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">
-                Status: No Access
-              </span>
-            </div>
-            <div>
-              <div className="text-3xl font-extrabold text-white mb-0.5">
-                <AnimatedNumber value={summaryStats.attention} />
-              </div>
-              <p className="text-xs text-slate-500 font-medium">
-                {summaryStats.total > 0
-                  ? (
-                      (summaryStats.attention / summaryStats.total) *
-                      100
-                    ).toFixed(1)
-                  : 0}
-                % of Cannot Access
-              </p>
-            </div>
-            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(245,158,11,0.5)] transition-all duration-300">
-              <AlertTriangle className="size-20 text-amber-500" />
-            </div>
-          </div>
-
           {/* Critical */}
           <div className="bg-[#0f172a] p-5 rounded-2xl border border-slate-800/50 flex flex-col justify-between relative overflow-hidden group">
             <div className="flex items-center justify-between mb-2">
@@ -1410,6 +1397,35 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(239,68,68,0.5)] transition-all duration-300">
               <XCircle className="size-20 text-rose-500" />
+            </div>
+          </div>
+
+          {/* Attention */}
+          <div className="bg-[#0f172a] p-5 rounded-2xl border border-slate-800/50 flex flex-col justify-between relative overflow-hidden group">
+            <div className="flex items-center justify-between mb-2">
+              <div className="bg-amber-500/10 p-2 rounded-lg group-hover:bg-amber-500/20 transition-colors">
+                <AlertTriangle className="size-5 text-amber-500" />
+              </div>
+              <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">
+                Status: No Access
+              </span>
+            </div>
+            <div>
+              <div className="text-3xl font-extrabold text-white mb-0.5">
+                <AnimatedNumber value={summaryStats.attention} />
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                {summaryStats.total > 0
+                  ? (
+                      (summaryStats.attention / summaryStats.total) *
+                      100
+                    ).toFixed(1)
+                  : 0}
+                % of Cannot Access
+              </p>
+            </div>
+            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(245,158,11,0.5)] transition-all duration-300">
+              <AlertTriangle className="size-20 text-amber-500" />
             </div>
           </div>
         </div>
@@ -1543,6 +1559,9 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
           </div>
         </div>
 
+        {/* Critical Issues Analysis */}
+        <CriticalIssuesAnalysis className="mt-6" />
+
         {/* Filters & Content */}
         <Tabs defaultValue="all" className="space-y-6">
           <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-slate-900/40 p-2 rounded-2xl border border-slate-800/60 backdrop-blur-sm">
@@ -1618,7 +1637,6 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                   <SelectItem value="nvr">NVR Down</SelectItem>
                   <SelectItem value="hdd">HDD Failure</SelectItem>
                   <SelectItem value="view">View Down</SelectItem>
-                  <SelectItem value="login">Login Problem</SelectItem>
                 </SelectContent>
               </Select>
             </div>

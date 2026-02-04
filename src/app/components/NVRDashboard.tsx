@@ -121,29 +121,76 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
     return () => clearInterval(interval);
   }, []);
 
-  // Get issue status with hierarchy
+  // Calculate effective status based on new condition logic
+  const calculateEffectiveStatus = (nvr: NVRStatus) => {
+    const status = {
+      onu: nvr.ping_onu,
+      nvr: nvr.ping_nvr,
+      hdd: nvr.hdd_status,
+      login: nvr.check_login,
+      normal_view: nvr.normal_view,
+    };
+
+    // ONU_STATUS condition
+    if (!status.onu) {
+      status.nvr = false;
+      status.hdd = false;
+      status.login = false;
+      status.normal_view = false;
+      return status;
+    }
+
+    // NVR_STATUS condition
+    if (!status.nvr) {
+      status.hdd = false;
+      status.login = false;
+      status.normal_view = false;
+      return status;
+    }
+
+    // HDD_STATUS condition (only check if ONU and NVR are online)
+    if (status.onu && status.nvr) {
+      status.hdd = nvr.hdd_status; // Use actual HDD status
+    } else {
+      status.hdd = false;
+    }
+
+    // LOGIN_STATUS condition
+    status.login = status.nvr; // Login true if NVR is online
+
+    // NORMAL_VIEW_STATUS condition (would need snapshot data)
+    // For now, use the original normal_view value
+    // In the future, this should check: if !normal_view && snapshot_exists -> true
+    status.normal_view = nvr.normal_view;
+
+    return status;
+  };
+
+  // Get issue status with new hierarchy
   const getIssueStatus = (nvr: NVRStatus) => {
-    if (!nvr.ping_onu) return "onu"; // ONU Down - highest priority
-    if (!nvr.ping_nvr) return "nvr"; // NVR Down
-    if (!nvr.hdd_status) return "hdd"; // HDD Down
-    if (!nvr.normal_view) return "view"; // Camera Down
-    if (!nvr.check_login) return "login"; // Login Problem
+    const status = calculateEffectiveStatus(nvr);
+    if (!status.onu) return "onu"; // ONU Down - highest priority
+    if (!status.nvr) return "nvr"; // NVR Down
+    if (!status.hdd) return "hdd"; // HDD Down - does not affect Camera, Login
+    if (!status.normal_view) return "view"; // View Down - affects Login
+    if (!status.login) return "login"; // Login Problem
     return "healthy"; // No issues
   };
 
-  // Check if NVR has critical issues based on hierarchy
+  // Check if NVR has critical issues based on new hierarchy
   const hasCriticalIssues = (nvr: NVRStatus) => {
+    const status = calculateEffectiveStatus(nvr);
     return (
-      !nvr.ping_onu || // ONU Down - affects everything below
-      !nvr.ping_nvr || // NVR Down - affects HDD, Camera, Login
-      !nvr.hdd_status || // HDD Down - affects Camera, Login
-      !nvr.normal_view // Camera Down - affects Login
+      !status.onu || // ONU Down - affects everything below
+      !status.nvr || // NVR Down - affects HDD, Camera, Login
+      !status.hdd // HDD Down - does not affect Camera, Login
     );
   };
 
-  // Check if NVR has attention issues (Login problem only when no critical issues)
+  // Check if NVR has attention issues (View Down only when no critical issues)
   const hasAttentionIssues = (nvr: NVRStatus) => {
-    return !hasCriticalIssues(nvr) && !nvr.check_login; // Login problem only
+    const status = calculateEffectiveStatus(nvr);
+    return !hasCriticalIssues(nvr) && !status.normal_view; // View Down only
   };
 
   // Check if NVR has any issues (for backward compatibility)
@@ -156,8 +203,9 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
     () =>
       nvrList.map((nvr): NVRWithIssues => {
         const issueStatus = getIssueStatus(nvr);
+        const status = calculateEffectiveStatus(nvr);
         const issues: string[] = [];
-        
+
         // Add issues based on hierarchy
         if (issueStatus === "onu") issues.push("ONU Ping");
         if (issueStatus === "nvr") issues.push("NVR Ping");
@@ -188,11 +236,21 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
     );
 
     // Count individual issues based on root cause
-    const onuDown = nvrWithIssues.filter((nvr) => getIssueStatus(nvr) === "onu").length;
-    const nvrDown = nvrWithIssues.filter((nvr) => getIssueStatus(nvr) === "nvr").length;
-    const hddDown = nvrWithIssues.filter((nvr) => getIssueStatus(nvr) === "hdd").length;
-    const cameraDown = nvrWithIssues.filter((nvr) => getIssueStatus(nvr) === "view").length;
-    const loginProblem = nvrWithIssues.filter((nvr) => getIssueStatus(nvr) === "login").length;
+    const onuDown = nvrWithIssues.filter(
+      (nvr) => getIssueStatus(nvr) === "onu",
+    ).length;
+    const nvrDown = nvrWithIssues.filter(
+      (nvr) => getIssueStatus(nvr) === "nvr",
+    ).length;
+    const hddDown = nvrWithIssues.filter(
+      (nvr) => getIssueStatus(nvr) === "hdd",
+    ).length;
+    const cameraDown = nvrWithIssues.filter(
+      (nvr) => getIssueStatus(nvr) === "view",
+    ).length;
+    const loginProblem = nvrWithIssues.filter(
+      (nvr) => getIssueStatus(nvr) === "login",
+    ).length;
 
     return {
       totalNVR,
@@ -243,12 +301,12 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
       {
         name: "Disk Failure",
         value: stats.hddDown,
-        fill: "#f97316", // orange-500 - ปัญหาฮาร์ดดิสก์ (ระดับ 3)
+        fill: "#f97316", // orange-500 - ปัญหาฮาร์ดดิสก์ (ระดับ 3) - ไม่กระทบ Camera/Login
       },
       {
-        name: "Camera Down",
+        name: "View Down",
         value: stats.cameraDown,
-        fill: "#eab308", // yellow-500 - ปัญหากล้อง (ระดับ 4)
+        fill: "#eab308", // yellow-500 - ปัญหาการแสดงผล (ระดับ 4)
       },
       {
         name: "Login Problem",
@@ -367,6 +425,35 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
               <CheckCircle className="size-20 text-emerald-500" />
             </div>
           </div>
+          
+          {/* Critical */}
+          <div className="bg-[#0f172a] p-5 rounded-2xl border border-slate-800/50 flex flex-col justify-between relative overflow-hidden group">
+            <div className="flex items-center justify-between mb-2">
+              <div className="bg-rose-500/10 p-2 rounded-lg group-hover:bg-rose-500/20 transition-colors">
+                <XCircle className="size-5 text-rose-500" />
+              </div>
+              <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest">
+                Status: Down
+              </span>
+            </div>
+            <div>
+              <div className="text-3xl font-extrabold text-white mb-0.5">
+                <AnimatedNumber value={stats.criticalNVRs.length} />
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                {stats.problemNVR > 0
+                  ? (
+                      (stats.criticalNVRs.length / stats.attentionNVRs.length) *
+                      100
+                    ).toFixed(1)
+                  : 0}
+                % of System Down
+              </p>
+            </div>
+            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(239,68,68,0.5)] transition-all duration-300">
+              <XCircle className="size-20 text-rose-500" />
+            </div>
+          </div>
 
           {/* Attention */}
           <div className="bg-[#0f172a] p-5 rounded-2xl border border-slate-800/50 flex flex-col justify-between relative overflow-hidden group">
@@ -396,37 +483,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
               <AlertTriangle className="size-20 text-amber-500" />
             </div>
           </div>
-
-          {/* Critical */}
-          <div className="bg-[#0f172a] p-5 rounded-2xl border border-slate-800/50 flex flex-col justify-between relative overflow-hidden group">
-            <div className="flex items-center justify-between mb-2">
-              <div className="bg-rose-500/10 p-2 rounded-lg group-hover:bg-rose-500/20 transition-colors">
-                <XCircle className="size-5 text-rose-500" />
-              </div>
-              <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest">
-                Status: Down
-              </span>
-            </div>
-            <div>
-              <div className="text-3xl font-extrabold text-white mb-0.5">
-                <AnimatedNumber value={stats.criticalNVRs.length} />
-              </div>
-              <p className="text-xs text-slate-500 font-medium">
-                {stats.problemNVR > 0
-                  ? (
-                      (stats.criticalNVRs.length / stats.attentionNVRs.length) *
-                      100
-                    ).toFixed(1)
-                  : 0}
-                % of System Down
-              </p>
-            </div>
-            <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(239,68,68,0.5)] transition-all duration-300">
-              <XCircle className="size-20 text-rose-500" />
-            </div>
-          </div>
         </div>
-
         {/* --- Main Content Grid --- */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column: Critical Issues (7 cols) */}
@@ -773,16 +830,16 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                   barSize={20}
                 />
                 <Bar
-                  dataKey="attention"
-                  name="Attention"
-                  fill="#f59e0b"
+                  dataKey="critical"
+                  name="Critical"
+                  fill="#ef4444"
                   radius={[4, 4, 0, 0]}
                   barSize={20}
                 />
                 <Bar
-                  dataKey="critical"
-                  name="Critical"
-                  fill="#ef4444"
+                  dataKey="attention"
+                  name="Attention"
+                  fill="#f59e0b"
                   radius={[4, 4, 0, 0]}
                   barSize={20}
                 />
