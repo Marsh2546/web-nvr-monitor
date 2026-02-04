@@ -358,29 +358,65 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     new Set(supabaseData.map((nvr) => nvr.district)),
   ).sort();
 
-  // Check if NVR has critical issues based on hierarchy
+  // Calculate effective status based on new condition logic
+  const calculateEffectiveStatus = (nvr: NVRStatus) => {
+    const status = {
+      onu: nvr.ping_onu,
+      nvr: nvr.ping_nvr,
+      hdd: nvr.hdd_status,
+      login: nvr.check_login,
+      normal_view: nvr.normal_view
+    };
+
+    // ONU_STATUS condition
+    if (!status.onu) {
+      status.nvr = false;
+      status.hdd = false;
+      status.login = false;
+      status.normal_view = false;
+      return status;
+    }
+
+    // NVR_STATUS condition
+    if (!status.nvr) {
+      status.hdd = false;
+      status.login = false;
+      status.normal_view = false;
+      return status;
+    }
+
+    // HDD_STATUS condition (only check if ONU and NVR are online)
+    if (status.onu && status.nvr) {
+      status.hdd = nvr.hdd_status; // Use actual HDD status
+    } else {
+      status.hdd = false;
+    }
+
+    // LOGIN_STATUS condition
+    status.login = status.nvr; // Login true if NVR is online
+
+    // NORMAL_VIEW_STATUS condition (would need snapshot data)
+    // For now, use the original normal_view value
+    // In the future, this should check: if !normal_view && snapshot_exists -> true
+    status.normal_view = nvr.normal_view;
+
+    return status;
+  };
+
+  // Check if NVR has critical issues based on new hierarchy
   const hasCriticalIssues = (nvr: NVRStatus) => {
+    const status = calculateEffectiveStatus(nvr);
     return (
-      !nvr.ping_onu || // ONU Down - affects everything below
-      !nvr.ping_nvr || // NVR Down - affects HDD, Camera, Login
-      !nvr.hdd_status || // HDD Down - affects Camera, Login
-      !nvr.normal_view // Camera Down - affects Login
+      !status.onu || // ONU Down - affects everything below
+      !status.nvr || // NVR Down - affects HDD, Camera, Login
+      !status.hdd // HDD Down - does not affect Camera, Login
     );
   };
 
   // Check if NVR has attention issues (Login problem only when no critical issues)
   const hasAttentionIssues = (nvr: NVRStatus) => {
-    return !hasCriticalIssues(nvr) && !nvr.check_login; // Login problem only
-  };
-
-  // Get issue status with hierarchy
-  const getIssueStatus = (nvr: NVRStatus) => {
-    if (!nvr.ping_onu) return "onu"; // ONU Down - highest priority
-    if (!nvr.ping_nvr) return "nvr"; // NVR Down
-    if (!nvr.hdd_status) return "hdd"; // HDD Down
-    if (!nvr.normal_view) return "view"; // Camera Down
-    if (!nvr.check_login) return "login"; // Login Problem
-    return "healthy"; // No issues
+    const status = calculateEffectiveStatus(nvr);
+    return !hasCriticalIssues(nvr) && !status.login; // Login problem only
   };
 
   // Check if NVR has any issues (for backward compatibility)
@@ -388,14 +424,15 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     return hasCriticalIssues(nvr) || hasAttentionIssues(nvr);
   };
 
-  // Get issue count (for display purposes only)
+  // Get issue count based on effective status
   const getIssueCount = (nvr: NVRStatus) => {
+    const status = calculateEffectiveStatus(nvr);
     let count = 0;
-    if (!nvr.ping_onu) count++;
-    if (!nvr.ping_nvr) count++;
-    if (!nvr.hdd_status) count++;
-    if (!nvr.normal_view) count++;
-    if (!nvr.check_login) count++;
+    if (!status.onu) count++;
+    if (!status.nvr) count++;
+    if (!status.hdd) count++;
+    if (!status.normal_view) count++;
+    if (!status.login) count++;
     return count;
   };
 
@@ -473,21 +510,21 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     });
   };
 
-  // Check specific issue types based on hierarchy
+  // Check specific issue types based on new hierarchy
   const hasSpecificIssue = (nvr: NVRStatus, issueType: string) => {
-    const status = getIssueStatus(nvr);
+    const status = calculateEffectiveStatus(nvr);
     
     switch (issueType) {
       case 'onu':
-        return status === "onu"; // Only show if ONU is the root cause
+        return !status.onu; // Only show if ONU is the root cause
       case 'nvr':
-        return status === "nvr"; // Only show if NVR is the root cause
+        return status.onu && !status.nvr; // Only show if NVR is the root cause
       case 'hdd':
-        return status === "hdd"; // Only show if HDD is the root cause
+        return status.onu && status.nvr && !status.hdd; // Only show if HDD is the root cause
       case 'view':
-        return status === "view"; // Only show if Camera is the root cause
+        return status.onu && status.nvr && !status.normal_view; // Only show if Camera is the root cause (not affected by HDD)
       case 'login':
-        return status === "login"; // Only show if Login is the root cause
+        return status.onu && status.nvr && !status.login; // Only show if Login is the root cause (not affected by HDD)
       default:
         return false;
     }
@@ -679,22 +716,34 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     );
   };
 
-  // Get status color for individual components based on hierarchy
+  // Get issue status with new hierarchy
+  const getIssueStatus = (nvr: NVRStatus) => {
+    const status = calculateEffectiveStatus(nvr);
+    if (!status.onu) return "onu"; // ONU Down - highest priority
+    if (!status.nvr) return "nvr"; // NVR Down
+    if (!status.hdd) return "hdd"; // HDD Down - does not affect Camera, Login
+    if (!status.normal_view) return "view"; // Camera Down - affects Login
+    if (!status.login) return "login"; // Login Problem
+    return "healthy"; // No issues
+  };
+
+  // Get component status based on new effective status
   const getComponentStatus = (nvr: NVRStatus, component: string) => {
-    const issueStatus = getIssueStatus(nvr);
+    const status = calculateEffectiveStatus(nvr);
     
     // If this component is the root cause, show it as failed
-    if (component === "onu" && issueStatus === "onu") return "failed";
-    if (component === "nvr" && issueStatus === "nvr") return "failed";
-    if (component === "hdd" && issueStatus === "hdd") return "failed";
-    if (component === "view" && issueStatus === "view") return "failed";
-    if (component === "login" && issueStatus === "login") return "failed";
+    if (component === "onu" && !status.onu) return "failed";
+    if (component === "nvr" && !status.nvr) return "failed";
+    if (component === "hdd" && !status.hdd) return "failed";
+    if (component === "view" && !status.normal_view) return "failed";
+    if (component === "login" && !status.login) return "failed";
     
     // If this component is affected by a higher level failure, show it as affected
-    if (component === "nvr" && issueStatus === "onu") return "affected";
-    if (component === "hdd" && (issueStatus === "onu" || issueStatus === "nvr")) return "affected";
-    if (component === "view" && (issueStatus === "onu" || issueStatus === "nvr" || issueStatus === "hdd")) return "affected";
-    if (component === "login" && issueStatus !== "healthy") return "affected";
+    if (component === "nvr" && !status.onu) return "affected";
+    if (component === "hdd" && (!status.onu || !status.nvr)) return "affected";
+    // HDD Down does not affect Camera and Login
+    if (component === "view" && (!status.onu || !status.nvr)) return "affected";
+    if (component === "login" && (!status.onu || !status.nvr)) return "affected";
     
     return "normal";
   };
@@ -1568,7 +1617,7 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                   <SelectItem value="onu">ONU Down</SelectItem>
                   <SelectItem value="nvr">NVR Down</SelectItem>
                   <SelectItem value="hdd">HDD Failure</SelectItem>
-                  <SelectItem value="view">Camera Down</SelectItem>
+                  <SelectItem value="view">View Down</SelectItem>
                   <SelectItem value="login">Login Problem</SelectItem>
                 </SelectContent>
               </Select>
