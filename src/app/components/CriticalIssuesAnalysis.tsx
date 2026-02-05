@@ -20,7 +20,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as ChartTooltip,
   Legend,
   ResponsiveContainer,
   BarChart,
@@ -30,6 +30,12 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/app/components/ui/tooltip";
 import {
   TrendingUp,
   TrendingDown,
@@ -46,6 +52,7 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Info,
 } from "lucide-react";
 import { fetchNVRStatusHistory } from "@/app/services/nvrHistoryService";
 import { NVRStatus } from "@/app/types/nvr";
@@ -339,17 +346,17 @@ const CriticalIssuesAnalysis: React.FC<{ className?: string }> = ({
     );
 
     const colors = {
-      ONU: "#EF4444",
-      NVR: "#F59E0B",
-      HDD: "#8B5CF6",
-      VIEW: "#10B981",
-      LOGIN: "#6366F1",
+      ONU: "#dc2626",
+      NVR: "#ef4444",
+      HDD: "#f97316",
+      VIEW: "#eab308",
+      LOGIN: "#facc15",
     };
 
     return Object.entries(typeCount).map(([type, count]) => ({
-      name: type.charAt(0).toUpperCase() + type.slice(1),
+      name: type.toUpperCase(),
       value: count,
-      color: colors[type as keyof typeof colors] || "#6B7280",
+      color: colors[type.toUpperCase() as keyof typeof colors] || "#6B7280",
     }));
   }, [allCriticalIssues]);
 
@@ -456,8 +463,38 @@ const CriticalIssuesAnalysis: React.FC<{ className?: string }> = ({
                     <TableHead className="text-slate-400">Location</TableHead>
                     <TableHead className="text-slate-400">Issue Type</TableHead>
                     <TableHead className="text-slate-400">Day Count</TableHead>
-                    <TableHead className="text-slate-400">Frequency</TableHead>
-                    <TableHead className="text-slate-400">Change</TableHead>
+                    <TableHead className="text-slate-400">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger className="flex items-center gap-1.5 cursor-help">
+                            Frequency
+                            <Info className="size-3 text-slate-500" />
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-slate-800 border-slate-700 text-slate-200">
+                            <p className="max-w-[200px] text-xs">
+                              Represents the proportion of days with this issue
+                              during the selected observation period.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableHead>
+                    <TableHead className="text-slate-400">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger className="flex items-center gap-1.5 cursor-help">
+                            Change
+                            <Info className="size-3 text-slate-500" />
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-slate-800 border-slate-700 text-slate-200">
+                            <p className="max-w-[200px] text-xs">
+                              Indicates how the current trend compares to the
+                              previous equivalent period.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableHead>
                     <TableHead className="text-slate-400">Last Seen</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -757,7 +794,7 @@ const CriticalIssuesAnalysis: React.FC<{ className?: string }> = ({
                         style: { fill: "#9CA3AF", fontSize: 12 },
                       }}
                     />
-                    <Tooltip
+                    <ChartTooltip
                       contentStyle={{
                         backgroundColor: "#1F2937",
                         border: "1px solid #374151",
@@ -824,32 +861,56 @@ const CriticalIssuesAnalysis: React.FC<{ className?: string }> = ({
                 <h4 className="text-lg font-semibold text-white mb-4">
                   Issue Type Distribution
                 </h4>
-                <div className="h-[300px]">
+                <div className="h-[300px] relative">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={issueTypeData}
                         cx="50%"
                         cy="50%"
-                        labelLine={false}
-                        label={(entry) => `${entry.name}: ${entry.value}`}
-                        outerRadius={80}
-                        fill="#8884d8"
+                        innerRadius={60}
+                        outerRadius={85}
+                        paddingAngle={5}
+                        cornerRadius={6}
                         dataKey="value"
+                        stroke="none"
                       >
                         {issueTypeData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip
+                      <ChartTooltip
                         contentStyle={{
-                          backgroundColor: "#1F2937",
-                          border: "1px solid #374151",
-                          borderRadius: "8px",
+                          backgroundColor: "#0f172a",
+                          border: "1px solid #1e293b",
+                          borderRadius: "12px",
+                          padding: "8px 12px",
                         }}
+                        itemStyle={{
+                          color: "#fff",
+                          fontSize: "12px",
+                          fontWeight: "bold",
+                        }}
+                      />
+                      <Legend
+                        verticalAlign="bottom"
+                        height={36}
+                        formatter={(value) => (
+                          <span className="text-xs font-medium text-slate-400 ml-1">
+                            {value}
+                          </span>
+                        )}
                       />
                     </PieChart>
                   </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-9">
+                    <span className="text-3xl font-black text-white">
+                      {allCriticalIssues.length}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                      Total Issues
+                    </span>
+                  </div>
                 </div>
               </div>
 
