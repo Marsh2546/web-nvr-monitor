@@ -207,11 +207,11 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
         const issues: string[] = [];
 
         // Add issues based on hierarchy
-        if (issueStatus === "onu") issues.push("ONU Ping");
-        if (issueStatus === "nvr") issues.push("NVR Ping");
-        if (issueStatus === "hdd") issues.push("HDD");
-        if (issueStatus === "view") issues.push("Camera View");
-        if (issueStatus === "login") issues.push("Login Access");
+        if (issueStatus === "onu") issues.push("ONU Down");
+        if (issueStatus === "nvr") issues.push("NVR Down");
+        if (issueStatus === "hdd") issues.push("HDD Failure");
+        if (issueStatus === "view") issues.push("View Down");
+        if (issueStatus === "login") issues.push("Login Failure");
 
         return {
           ...nvr,
@@ -361,10 +361,10 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pt-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
           <div>
             <h2 className="text-3xl font-extrabold text-foreground tracking-tight">
-              Dashboard Overview
+              Daily Dashboard Overview
             </h2>
             <p className="text-muted-foreground text-sm mt-1">
-              Real-time infrastructure health and distribution telemetry.
+              Overview of today’s infrastructure health from the most recent system updates.
             </p>
           </div>
           <div className="flex items-center gap-3 bg-slate-900/40 px-4 py-2 rounded-xl border border-slate-800/60 backdrop-blur-sm">
@@ -759,19 +759,19 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-base font-bold text-white mb-1 uppercase tracking-tight">
-                Health Status by District
+                Today’s System Issues by District
               </h3>
               <p className="text-xs text-slate-500">
                 Distribution of healthy vs failing units per district
               </p>
             </div>
             <div className="flex gap-4">
-              <div className="flex items-center gap-2">
+              {/* <div className="flex items-center gap-2">
                 <div className="size-2 rounded-full bg-blue-500" />
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
                   Healthy
                 </span>
-              </div>
+              </div> */}
               <div className="flex items-center gap-2">
                 <div className="size-2 rounded-full bg-amber-500" />
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
@@ -822,13 +822,13 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                   }}
                   itemStyle={{ fontSize: "12px" }}
                 />
-                <Bar
+                {/* <Bar
                   dataKey="normal"
                   name="Healthy"
                   fill="#3b82f6"
                   radius={[4, 4, 0, 0]}
                   barSize={20}
-                />
+                /> */}
                 <Bar
                   dataKey="critical"
                   name="Critical"

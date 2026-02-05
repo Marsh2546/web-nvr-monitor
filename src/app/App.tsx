@@ -90,7 +90,7 @@ export default function App() {
             <div className="flex items-center gap-4">
               <div className="size-15 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center">
                 <img
-                  src="https://multiinno.com/wp-content/uploads/2025/06/cropped-logo-e1748947128387.webp"
+                  src="/logos/Vector.svg"
                   alt="Logo"
                   className="h-12 w-auto object-contain"
                 />
