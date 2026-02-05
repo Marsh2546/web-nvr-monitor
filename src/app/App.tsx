@@ -102,7 +102,7 @@ export default function App() {
                     variant="outline"
                     className="text-[10px] h-4 bg-blue-500/10 border-blue-500/30 text-blue-400 uppercase tracking-wider px-1"
                   >
-                    North District
+                    Northern Bangkok
                   </Badge>
                 </h1>
                 <p className="text-[10px] text-slate-400 flex items-center gap-2">
