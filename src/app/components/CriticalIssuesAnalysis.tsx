@@ -134,12 +134,12 @@ const CriticalIssuesAnalysis: React.FC<{ className?: string }> = ({
   // Get issue status with new hierarchy
   const getIssueStatus = (nvr: NVRStatus) => {
     const status = calculateEffectiveStatus(nvr);
-    if (!status.onu) return "onu";
-    if (!status.nvr) return "nvr";
-    if (!status.hdd) return "hdd";
-    if (!status.normal_view) return "view";
-    if (!status.login) return "login";
-    return "healthy";
+    if (!status.onu) return "ONU";
+    if (!status.nvr) return "NVR";
+    if (!status.hdd) return "HDD";
+    if (!status.normal_view) return "VIEW";
+    if (!status.login) return "LOGIN";
+    return "HEALTHY";
   };
 
   // Check if NVR has critical issues
@@ -335,6 +335,15 @@ const CriticalIssuesAnalysis: React.FC<{ className?: string }> = ({
     }));
   }, [criticalIssues]);
 
+  // Color definitions for issue types
+  const colors = {
+    ONU: "#dc2626",
+    NVR: "#ef4444",
+    HDD: "#f97316",
+    VIEW: "#eab308",
+    LOGIN: "#facc15",
+  };
+
   // Prepare issue type distribution data
   const issueTypeData = useMemo(() => {
     const typeCount = allCriticalIssues.reduce(
@@ -344,14 +353,6 @@ const CriticalIssuesAnalysis: React.FC<{ className?: string }> = ({
       },
       {} as Record<string, number>,
     );
-
-    const colors = {
-      ONU: "#dc2626",
-      NVR: "#ef4444",
-      HDD: "#f97316",
-      VIEW: "#eab308",
-      LOGIN: "#facc15",
-    };
 
     return Object.entries(typeCount).map(([type, count]) => ({
       name: type.toUpperCase(),
@@ -896,9 +897,15 @@ const CriticalIssuesAnalysis: React.FC<{ className?: string }> = ({
                         verticalAlign="bottom"
                         height={36}
                         formatter={(value) => (
-                          <span className="text-xs font-medium text-slate-400 ml-1">
-                            {value}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="size-1.5 rounded-full"
+                              style={{ backgroundColor: colors[value as keyof typeof colors] }}
+                            />
+                            <span className="text-xs font-medium text-slate-400 ml-1">
+                              {value}
+                            </span>
+                          </div>
                         )}
                       />
                     </PieChart>
