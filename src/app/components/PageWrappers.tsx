@@ -12,7 +12,10 @@ export class DashboardPage {
   static render(props: PageWrapperProps): ReactNode {
     return (
       <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-        <NVRDashboard nvrList={props.nvrList} onPageChange={props.onPageChange} />
+        <NVRDashboard
+          nvrList={props.nvrList}
+          onPageChange={props.onPageChange}
+        />
       </div>
     );
   }
@@ -30,7 +33,10 @@ export class StatusPage {
   static render(props: PageWrapperProps): ReactNode {
     return (
       <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-        <NVRStatusPage nvrList={props.nvrList} onPageChange={props.onPageChange} />
+        <NVRStatusPage
+          nvrList={props.nvrList}
+          onPageChange={props.onPageChange}
+        />
       </div>
     );
   }

@@ -364,7 +364,8 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
               Daily Dashboard Overview
             </h2>
             <p className="text-muted-foreground text-sm mt-1">
-              Overview of today’s infrastructure health from the most recent system updates.
+              Overview of today’s infrastructure health from the most recent
+              system updates.
             </p>
           </div>
           <div className="flex items-center gap-3 bg-slate-900/40 px-4 py-2 rounded-xl border border-slate-800/60 backdrop-blur-sm">
@@ -425,7 +426,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
               <CheckCircle className="size-20 text-emerald-500" />
             </div>
           </div>
-          
+
           {/* Critical */}
           <div className="bg-[#0f172a] p-5 rounded-2xl border border-slate-800/50 flex flex-col justify-between relative overflow-hidden group">
             <div className="flex items-center justify-between mb-2">
@@ -433,7 +434,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 <XCircle className="size-5 text-rose-500" />
               </div>
               <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest">
-                Status: Down
+                Status: Offline
               </span>
             </div>
             <div>
@@ -443,11 +444,11 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
               <p className="text-xs text-slate-500 font-medium">
                 {stats.problemNVR > 0
                   ? (
-                      (stats.criticalNVRs.length / stats.attentionNVRs.length) *
+                      (stats.criticalNVRs.length / stats.totalNVR) *
                       100
                     ).toFixed(1)
                   : 0}
-                % of System Down
+                % of System Offline
               </p>
             </div>
             <div className="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 group-hover:drop-shadow-[0_0_20px_rgba(239,68,68,0.5)] transition-all duration-300">
@@ -655,7 +656,7 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
                 <div className="flex items-center gap-2">
                   <div className="size-2 rounded-full bg-red-500" />
                   <span className="text-xs text-slate-400 font-medium">
-                    Down (
+                    Offline (
                     {(
                       (stats.criticalNVRs.length / stats.totalNVR) *
                       100
@@ -848,75 +849,61 @@ export function NVRDashboard({ nvrList, onPageChange }: NVRDashboardProps) {
           </div>
 
           {/* Small Breakdown Tiles */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-6 border-t border-slate-800/50">
-            <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 flex flex-col items-start gap-1">
-              <div className="flex items-center gap-1.5 opacity-60">
-                <Wifi className="size-3" />
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t border-slate-800/50">
+            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex flex-col items-start gap-2">
+              <div className="flex items-center gap-2 opacity-70">
+                <Wifi className="size-4" />
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
                   ONU Ping
                 </span>
               </div>
-              <div className="text-xl font-bold text-rose-500">
+              <div className="text-2xl font-bold text-rose-500">
                 {stats.onuDown}
               </div>
-              <span className="text-[9px] text-slate-600 font-medium">
+              <span className="text-[10px] text-slate-600 font-medium">
                 No response
               </span>
             </div>
-            <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 flex flex-col items-start gap-1">
-              <div className="flex items-center gap-1.5 opacity-60">
-                <Server className="size-3" />
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex flex-col items-start gap-2">
+              <div className="flex items-center gap-2 opacity-70">
+                <Server className="size-4" />
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
                   NVR Ping
                 </span>
               </div>
-              <div className="text-xl font-bold text-rose-500">
+              <div className="text-2xl font-bold text-rose-500">
                 {stats.nvrDown}
               </div>
-              <span className="text-[9px] text-slate-600 font-medium">
+              <span className="text-[10px] text-slate-600 font-medium">
                 Connection timeout
               </span>
             </div>
-            <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 flex flex-col items-start gap-1">
-              <div className="flex items-center gap-1.5 opacity-60">
-                <HardDrive className="size-3" />
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex flex-col items-start gap-2">
+              <div className="flex items-center gap-2 opacity-70">
+                <HardDrive className="size-4" />
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
                   HDD Status
                 </span>
               </div>
-              <div className="text-xl font-bold text-rose-500">
+              <div className="text-2xl font-bold text-rose-500">
                 {stats.hddDown}
               </div>
-              <span className="text-[9px] text-slate-600 font-medium">
+              <span className="text-[10px] text-slate-600 font-medium">
                 Write errors
               </span>
             </div>
-            <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 flex flex-col items-start gap-1">
-              <div className="flex items-center gap-1.5 opacity-60">
-                <Eye className="size-3" />
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex flex-col items-start gap-2">
+              <div className="flex items-center gap-2 opacity-70">
+                <Eye className="size-4" />
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
                   Display
                 </span>
               </div>
-              <div className="text-xl font-bold text-amber-500">
+              <div className="text-2xl font-bold text-amber-500">
                 {stats.cameraDown}
               </div>
-              <span className="text-[9px] text-slate-600 font-medium">
+              <span className="text-[10px] text-slate-600 font-medium">
                 Camera obstruction
-              </span>
-            </div>
-            <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 flex flex-col items-start gap-1">
-              <div className="flex items-center gap-1.5 opacity-60">
-                <LogIn className="size-3" />
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  Login
-                </span>
-              </div>
-              <div className="text-xl font-bold text-amber-500">
-                {stats.loginProblem}
-              </div>
-              <span className="text-[9px] text-slate-600 font-medium">
-                Auth failed
               </span>
             </div>
           </div>

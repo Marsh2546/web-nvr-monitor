@@ -1,16 +1,43 @@
-import { useState } from 'react';
-import { RepairTicket, RepairStatus, Priority } from '@/app/types/repair';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
-import { Label } from '@/app/components/ui/label';
-import { Textarea } from '@/app/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/app/components/ui/dialog';
-import { Badge } from '@/app/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
-import { Plus, Pencil, Trash2, Save, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { RepairTicket, RepairStatus, Priority } from "@/app/types/repair";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/app/components/ui/card";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
+import { Textarea } from "@/app/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/app/components/ui/dialog";
+import { Badge } from "@/app/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/app/components/ui/table";
+import { Plus, Pencil, Trash2, Save, X } from "lucide-react";
+import { toast } from "sonner";
 
 interface AdminPageProps {
   tickets: RepairTicket[];
@@ -18,24 +45,68 @@ interface AdminPageProps {
 }
 
 const statusLabels = {
-  pending: 'รอดำเนินการ',
-  'in-progress': 'กำลังซ่อม',
-  completed: 'เสร็จสิ้น',
+  pending: "รอดำเนินการ",
+  "in-progress": "กำลังซ่อม",
+  completed: "เสร็จสิ้น",
 };
 
 const priorityLabels = {
-  high: 'เร่งด่วนมาก',
-  medium: 'ปานกลาง',
-  low: 'ไม่เร่งด่วน',
+  high: "เร่งด่วนมาก",
+  medium: "ปานกลาง",
+  low: "ไม่เร่งด่วน",
 };
 
 const bangkokDistricts = [
-  'พระนคร', 'ดุสิต', 'หนองจอก', 'บางรัก', 'บางเขน', 'บางกะปิ', 'ปทุมวัน', 'ป้อมปราบศัตรูพ่าย',
-  'พระโขนง', 'มีนบุรี', 'ลาดกระบัง', 'ยานนาวา', 'สัมพันธวงศ์', 'พญาไท', 'ธนบุรี', 'บางกอกใหญ่',
-  'ห้วยขวาง', 'คลองสาน', 'ตลิ่งชัน', 'บางกอกน้อย', 'บางขุนเทียน', 'ภาษีเจริญ', 'หนองแขม', 'ราษฎร์บูรณะ',
-  'บางพลัด', 'ดินแดง', 'บึงกุ่ม', 'สาทร', 'บางซื่อ', 'จตุจักร', 'บางคอแหลม', 'ประเวศ', 'คลองเตย',
-  'สวนหลวง', 'จอมทอง', 'ดอนเมือง', 'ราชเทวี', 'ลาดพร้าว', 'วัฒนา', 'บางแค', 'หลักสี่', 'สายไหม',
-  'คันนายาว', 'สะพานสูง', 'วังทองหลาง', 'คลองสามวา', 'บางนา', 'ทวีวัฒนา', 'ทุ่งครุ', 'บางบอน'
+  "พระนคร",
+  "ดุสิต",
+  "หนองจอก",
+  "บางรัก",
+  "บางเขน",
+  "บางกะปิ",
+  "ปทุมวัน",
+  "ป้อมปราบศัตรูพ่าย",
+  "พระโขนง",
+  "มีนบุรี",
+  "ลาดกระบัง",
+  "ยานนาวา",
+  "สัมพันธวงศ์",
+  "พญาไท",
+  "ธนบุรี",
+  "บางกอกใหญ่",
+  "ห้วยขวาง",
+  "คลองสาน",
+  "ตลิ่งชัน",
+  "บางกอกน้อย",
+  "บางขุนเทียน",
+  "ภาษีเจริญ",
+  "หนองแขม",
+  "ราษฎร์บูรณะ",
+  "บางพลัด",
+  "ดินแดง",
+  "บึงกุ่ม",
+  "สาทร",
+  "บางซื่อ",
+  "จตุจักร",
+  "บางคอแหลม",
+  "ประเวศ",
+  "คลองเตย",
+  "สวนหลวง",
+  "จอมทอง",
+  "ดอนเมือง",
+  "ราชเทวี",
+  "ลาดพร้าว",
+  "วัฒนา",
+  "บางแค",
+  "หลักสี่",
+  "สายไหม",
+  "คันนายาว",
+  "สะพานสูง",
+  "วังทองหลาง",
+  "คลองสามวา",
+  "บางนา",
+  "ทวีวัฒนา",
+  "ทุ่งครุ",
+  "บางบอน",
 ];
 
 export function AdminPage({ tickets, onUpdateTickets }: AdminPageProps) {
@@ -45,29 +116,35 @@ export function AdminPage({ tickets, onUpdateTickets }: AdminPageProps) {
 
   // Form states for new ticket
   const [newTicket, setNewTicket] = useState({
-    location: '',
-    district: '',
-    issue: '',
-    priority: 'medium' as Priority,
-    scheduledDate: '',
-    reporter: '',
+    location: "",
+    district: "",
+    issue: "",
+    priority: "medium" as Priority,
+    scheduledDate: "",
+    reporter: "",
   });
 
   // Form states for editing ticket
   const [editForm, setEditForm] = useState({
-    status: 'pending' as RepairStatus,
-    technician: '',
-    completedDate: '',
+    status: "pending" as RepairStatus,
+    technician: "",
+    completedDate: "",
   });
 
   const handleAddTicket = () => {
-    if (!newTicket.location || !newTicket.district || !newTicket.issue || !newTicket.scheduledDate || !newTicket.reporter) {
-      toast.error('กรุณากรอกข้อมูลให้ครบถ้วน');
+    if (
+      !newTicket.location ||
+      !newTicket.district ||
+      !newTicket.issue ||
+      !newTicket.scheduledDate ||
+      !newTicket.reporter
+    ) {
+      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
       return;
     }
 
     const ticketNumber = `CCTV-2026-${Date.now()}`;
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split("T")[0];
     const now = new Date().toISOString();
 
     const ticket: RepairTicket = {
@@ -76,27 +153,27 @@ export function AdminPage({ tickets, onUpdateTickets }: AdminPageProps) {
       location: newTicket.location,
       district: newTicket.district,
       issue: newTicket.issue,
-      status: 'pending',
+      status: "pending",
       priority: newTicket.priority,
       reportedDate: today,
       scheduledDate: newTicket.scheduledDate,
       reporter: newTicket.reporter,
       createdAt: now,
       updatedAt: now,
-      updatedBy: 'Admin',
+      updatedBy: "Admin",
     };
 
     onUpdateTickets([...tickets, ticket]);
     setIsAddDialogOpen(false);
     setNewTicket({
-      location: '',
-      district: '',
-      issue: '',
-      priority: 'medium',
-      scheduledDate: '',
-      reporter: '',
+      location: "",
+      district: "",
+      issue: "",
+      priority: "medium",
+      scheduledDate: "",
+      reporter: "",
     });
-    toast.success('เพิ่มรายการแจ้งซ่อมสำเร็จ');
+    toast.success("เพิ่มรายการแจ้งซ่อมสำเร็จ");
   };
 
   const handleEditTicket = () => {
@@ -104,17 +181,17 @@ export function AdminPage({ tickets, onUpdateTickets }: AdminPageProps) {
 
     const now = new Date().toISOString();
 
-    const updatedTickets = tickets.map(ticket => {
+    const updatedTickets = tickets.map((ticket) => {
       if (ticket.id === editingTicket.id) {
         const updated = {
           ...ticket,
           status: editForm.status,
           technician: editForm.technician || ticket.technician,
           updatedAt: now,
-          updatedBy: 'Admin',
+          updatedBy: "Admin",
         };
 
-        if (editForm.status === 'completed' && editForm.completedDate) {
+        if (editForm.status === "completed" && editForm.completedDate) {
           updated.completedDate = editForm.completedDate;
         }
 
@@ -126,14 +203,14 @@ export function AdminPage({ tickets, onUpdateTickets }: AdminPageProps) {
     onUpdateTickets(updatedTickets);
     setIsEditDialogOpen(false);
     setEditingTicket(null);
-    toast.success('อัปเดตสถานะสำเร็จ');
+    toast.success("อัปเดตสถานะสำเร็จ");
   };
 
   const handleDeleteTicket = (id: string) => {
-    if (confirm('คุณแน่ใจหรือไม่ที่จะลบรายการนี้?')) {
-      const updatedTickets = tickets.filter(ticket => ticket.id !== id);
+    if (confirm("คุณแน่ใจหรือไม่ที่จะลบรายการนี้?")) {
+      const updatedTickets = tickets.filter((ticket) => ticket.id !== id);
       onUpdateTickets(updatedTickets);
-      toast.success('ลบรายการสำเร็จ');
+      toast.success("ลบรายการสำเร็จ");
     }
   };
 
@@ -141,8 +218,8 @@ export function AdminPage({ tickets, onUpdateTickets }: AdminPageProps) {
     setEditingTicket(ticket);
     setEditForm({
       status: ticket.status,
-      technician: ticket.technician || '',
-      completedDate: ticket.completedDate || '',
+      technician: ticket.technician || "",
+      completedDate: ticket.completedDate || "",
     });
     setIsEditDialogOpen(true);
   };
@@ -152,7 +229,9 @@ export function AdminPage({ tickets, onUpdateTickets }: AdminPageProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold mb-2">จัดการรายการซ่อม (Admin)</h1>
-          <p className="text-gray-600">เพิ่ม แก้ไข และจัดการรายการแจ้งซ่อม CCTV</p>
+          <p className="text-gray-600">
+            เพิ่ม แก้ไข และจัดการรายการแจ้งซ่อม CCTV
+          </p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
@@ -175,20 +254,24 @@ export function AdminPage({ tickets, onUpdateTickets }: AdminPageProps) {
                   id="location"
                   placeholder="เช่น ถนนสุขุมวิท ซอย 21"
                   value={newTicket.location}
-                  onChange={(e) => setNewTicket({ ...newTicket, location: e.target.value })}
+                  onChange={(e) =>
+                    setNewTicket({ ...newTicket, location: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="district">เขต *</Label>
                 <Select
                   value={newTicket.district}
-                  onValueChange={(value) => setNewTicket({ ...newTicket, district: value })}
+                  onValueChange={(value) =>
+                    setNewTicket({ ...newTicket, district: value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="เลือกเขต" />
                   </SelectTrigger>
                   <SelectContent>
-                    {bangkokDistricts.map(district => (
+                    {bangkokDistricts.map((district) => (
                       <SelectItem key={district} value={district}>
                         เขต{district}
                       </SelectItem>
@@ -202,7 +285,9 @@ export function AdminPage({ tickets, onUpdateTickets }: AdminPageProps) {
                   id="issue"
                   placeholder="อธิบายปัญหาที่พบ"
                   value={newTicket.issue}
-                  onChange={(e) => setNewTicket({ ...newTicket, issue: e.target.value })}
+                  onChange={(e) =>
+                    setNewTicket({ ...newTicket, issue: e.target.value })
+                  }
                   rows={3}
                 />
               </div>
@@ -210,7 +295,9 @@ export function AdminPage({ tickets, onUpdateTickets }: AdminPageProps) {
                 <Label htmlFor="priority">ระดับความเร่งด่วน *</Label>
                 <Select
                   value={newTicket.priority}
-                  onValueChange={(value) => setNewTicket({ ...newTicket, priority: value as Priority })}
+                  onValueChange={(value) =>
+                    setNewTicket({ ...newTicket, priority: value as Priority })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -228,7 +315,12 @@ export function AdminPage({ tickets, onUpdateTickets }: AdminPageProps) {
                   id="scheduledDate"
                   type="date"
                   value={newTicket.scheduledDate}
-                  onChange={(e) => setNewTicket({ ...newTicket, scheduledDate: e.target.value })}
+                  onChange={(e) =>
+                    setNewTicket({
+                      ...newTicket,
+                      scheduledDate: e.target.value,
+                    })
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -237,12 +329,17 @@ export function AdminPage({ tickets, onUpdateTickets }: AdminPageProps) {
                   id="reporter"
                   placeholder="เช่น ศูนย์ควบคุม เขตวัฒนา"
                   value={newTicket.reporter}
-                  onChange={(e) => setNewTicket({ ...newTicket, reporter: e.target.value })}
+                  onChange={(e) =>
+                    setNewTicket({ ...newTicket, reporter: e.target.value })
+                  }
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsAddDialogOpen(false)}
+              >
                 <X className="size-4 mr-2" />
                 ยกเลิก
               </Button>
@@ -280,7 +377,9 @@ export function AdminPage({ tickets, onUpdateTickets }: AdminPageProps) {
               <TableBody>
                 {tickets.map((ticket) => (
                   <TableRow key={ticket.id}>
-                    <TableCell className="font-medium">{ticket.ticketNumber}</TableCell>
+                    <TableCell className="font-medium">
+                      {ticket.ticketNumber}
+                    </TableCell>
                     <TableCell className="max-w-[200px]">
                       <div className="truncate" title={ticket.location}>
                         {ticket.location}
@@ -293,61 +392,72 @@ export function AdminPage({ tickets, onUpdateTickets }: AdminPageProps) {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge 
-                        variant={ticket.status === 'completed' ? 'default' : 'outline'}
+                      <Badge
+                        variant={
+                          ticket.status === "completed" ? "default" : "outline"
+                        }
                         className={
-                          ticket.status === 'pending' 
-                            ? 'bg-yellow-100 text-yellow-800 border-yellow-200' 
-                            : ticket.status === 'in-progress'
-                            ? 'bg-blue-100 text-blue-800 border-blue-200'
-                            : 'bg-green-100 text-green-800 border-green-200'
+                          ticket.status === "pending"
+                            ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                            : ticket.status === "in-progress"
+                              ? "bg-blue-100 text-blue-800 border-blue-200"
+                              : "bg-green-100 text-green-800 border-green-200"
                         }
                       >
                         {statusLabels[ticket.status]}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge 
+                      <Badge
                         variant="outline"
                         className={
-                          ticket.priority === 'high'
-                            ? 'bg-red-100 text-red-800 border-red-200'
-                            : ticket.priority === 'medium'
-                            ? 'bg-orange-100 text-orange-800 border-orange-200'
-                            : 'bg-gray-100 text-gray-800 border-gray-200'
+                          ticket.priority === "high"
+                            ? "bg-red-100 text-red-800 border-red-200"
+                            : ticket.priority === "medium"
+                              ? "bg-orange-100 text-orange-800 border-orange-200"
+                              : "bg-gray-100 text-gray-800 border-gray-200"
                         }
                       >
                         {priorityLabels[ticket.priority]}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {new Date(ticket.scheduledDate).toLocaleDateString('th-TH', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
+                      {new Date(ticket.scheduledDate).toLocaleDateString(
+                        "th-TH",
+                        {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        },
+                      )}
                     </TableCell>
-                    <TableCell>{ticket.technician || '-'}</TableCell>
+                    <TableCell>{ticket.technician || "-"}</TableCell>
                     <TableCell>
                       {ticket.updatedAt ? (
                         <div className="text-sm">
                           <div className="font-medium">
-                            {new Date(ticket.updatedAt).toLocaleDateString('th-TH', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                            })}
+                            {new Date(ticket.updatedAt).toLocaleDateString(
+                              "th-TH",
+                              {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              },
+                            )}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {new Date(ticket.updatedAt).toLocaleTimeString('th-TH', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                            {new Date(ticket.updatedAt).toLocaleTimeString(
+                              "th-TH",
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )}
                             {ticket.updatedBy && ` โดย ${ticket.updatedBy}`}
                           </div>
                         </div>
                       ) : (
-                        '-'
+                        "-"
                       )}
                     </TableCell>
                     <TableCell className="text-right">
@@ -391,7 +501,9 @@ export function AdminPage({ tickets, onUpdateTickets }: AdminPageProps) {
               <Label htmlFor="status">สถานะ</Label>
               <Select
                 value={editForm.status}
-                onValueChange={(value) => setEditForm({ ...editForm, status: value as RepairStatus })}
+                onValueChange={(value) =>
+                  setEditForm({ ...editForm, status: value as RepairStatus })
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -409,23 +521,30 @@ export function AdminPage({ tickets, onUpdateTickets }: AdminPageProps) {
                 id="technician"
                 placeholder="ชื่อช่างผู้ซ่อม"
                 value={editForm.technician}
-                onChange={(e) => setEditForm({ ...editForm, technician: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, technician: e.target.value })
+                }
               />
             </div>
-            {editForm.status === 'completed' && (
+            {editForm.status === "completed" && (
               <div className="space-y-2">
                 <Label htmlFor="completedDate">วันที่เสร็จสิ้น</Label>
                 <Input
                   id="completedDate"
                   type="date"
                   value={editForm.completedDate}
-                  onChange={(e) => setEditForm({ ...editForm, completedDate: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, completedDate: e.target.value })
+                  }
                 />
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+            >
               <X className="size-4 mr-2" />
               ยกเลิก
             </Button>
