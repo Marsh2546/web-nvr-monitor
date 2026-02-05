@@ -154,7 +154,7 @@ const CriticalIssuesAnalysis: React.FC<{ className?: string }> = ({
 
   // Get issue icon and label
   const getIssueInfo = (issueType: string) => {
-    switch (issueType) {
+    switch (issueType.toLowerCase()) {
       case "onu":
         return {
           icon: <Wifi className="size-4" />,
