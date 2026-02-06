@@ -5,10 +5,12 @@
     "moduleResolution": "Node",
     "strict": true,
     "jsx": "react-jsx",
-
-    "baseUrl": "src",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["*"]
+      "@/*": ["src/*"]
     }
   },
   "include": ["src"]

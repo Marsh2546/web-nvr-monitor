@@ -28,3 +28,6 @@ coverage/
 
 # Misc
 tsc_output.txt
+
+# utils/supabase
+utils\supabase\info.tsx

@@ -12,8 +12,7 @@ import { Toaster } from "@/app/components/ui/sonner";
 import { toast } from "sonner";
 import { fetchNVRStatus } from "@/app/services/nvrService";
 import { NVRStatus } from "@/app/types/nvr";
-import { PageRegistry } from "@/app/components/PageRegistry";
-import { PageName, PageWrapperProps } from "@/app/components/PageWrappers";
+import { PageRegistry, PageName, PageWrapperProps } from "@/app/components";
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageName>("dashboard");
@@ -131,7 +130,7 @@ export default function App() {
               <div className="flex gap-2">
                 {(() => {
                   const allPages = PageRegistry.getAllPages();
-                  const buttons = [];
+                  const buttons: React.ReactElement[] = [];
 
                   allPages.forEach((PageClass, pageName) => {
                     const isActive = currentPage === pageName;

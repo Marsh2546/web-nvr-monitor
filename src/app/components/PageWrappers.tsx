@@ -1,7 +1,6 @@
 import { ReactNode } from "react";
 import { NVRStatus } from "@/app/types/nvr";
-import { NVRDashboard } from "./NVRDashboard";
-import { NVRStatusPage } from "./NVRStatusPage";
+import { NVRDashboard, NVRStatusPage } from "./pages";
 
 export interface PageWrapperProps {
   nvrList: NVRStatus[];
