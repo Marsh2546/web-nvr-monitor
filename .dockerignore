@@ -5,6 +5,7 @@ dist
 README.md
 Dockerfile
 docker-compose.yml
+docker-compose.postgresql.yml
 npm-debug.log
 error.log
 .env

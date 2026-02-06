@@ -1,6 +1,85 @@
 services:
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "8080:80"
     restart: unless-stopped
+    depends_on:
+      - db
+      - backend
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/cctv_nvr
+      - VITE_DB_HOST=db
+      - VITE_DB_PORT=5432
+      - VITE_DB_NAME=cctv_nvr
+      - VITE_DB_USER=postgres
+      - VITE_DB_PASSWORD=password
+      - VITE_DB_SSL=false
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/cctv_nvr
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=cctv_nvr
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - DB_SSL=false
+    volumes:
+      - ./snapshots:/app/snapshots
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: cctv_nvr
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+      - ./database/backups:/backups
+    restart: unless-stopped
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@cctv-nvr.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    restart: unless-stopped
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+  # Optional: Redis for caching
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+  redis_data:
