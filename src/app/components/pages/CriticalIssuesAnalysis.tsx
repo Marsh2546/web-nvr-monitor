@@ -85,7 +85,7 @@ const CriticalIssuesAnalysis: React.FC<{ className?: string }> = ({
   );
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"table" | "chart">("table");
-  const [timeRange, setTimeRange] = useState<"3days" | "7days">("3days");
+  const [timeRange, setTimeRange] = useState<"3days" | "7days" | "all">("3days");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -205,13 +205,17 @@ const CriticalIssuesAnalysis: React.FC<{ className?: string }> = ({
 
         if (timeRange === "3days") {
           startDate.setDate(endDate.getDate() - 3);
-        } else {
+        } else if (timeRange === "7days") {
           startDate.setDate(endDate.getDate() - 7);
+        } else {
+          // For "all" time, set a very early date
+          startDate.setFullYear(2020, 0, 1); // January 1, 2020
         }
 
         const historyData = await fetchNVRStatusHistory(
           startDate.toISOString().split("T")[0],
           endDate.toISOString().split("T")[0],
+          timeRange === "all" ? 10000 : undefined // Limit to 10,000 records for All Time
         );
 
         // Group issues by NVR and issue type
@@ -272,7 +276,7 @@ const CriticalIssuesAnalysis: React.FC<{ className?: string }> = ({
             return {
               ...issue,
               issueIcon: issueInfo.icon,
-              days: timeRange === "3days" ? 3 : 7,
+              days: timeRange === "3days" ? 3 : timeRange === "7days" ? 7 : 999,
               percentageChange,
               trend,
             };
@@ -396,7 +400,8 @@ const CriticalIssuesAnalysis: React.FC<{ className?: string }> = ({
             </CardTitle>
             <p className="text-sm text-slate-500 mt-1">
               ปัญหาระดับ critical ที่เกิดซ้ำในช่วง{" "}
-              {timeRange === "3days" ? "3" : "7"} วัน
+              {timeRange === "3days" ? "3" : timeRange === "7days" ? "7" : "ทั้งหมด"}
+              {timeRange === "all" ? "" : "วัน"}
               {allCriticalIssues.length > 0 && (
                 <span className="text-blue-400 ml-2">
                   (ทั้งหมด {allCriticalIssues.length} รายการ)
@@ -422,6 +427,14 @@ const CriticalIssuesAnalysis: React.FC<{ className?: string }> = ({
                 className="text-xs"
               >
                 7 Days
+              </Button>
+              <Button
+                size="sm"
+                variant={timeRange === "all" ? "default" : "ghost"}
+                onClick={() => setTimeRange("all")}
+                className="text-xs"
+              >
+                All Time
               </Button>
             </div>
 
@@ -465,48 +478,12 @@ const CriticalIssuesAnalysis: React.FC<{ className?: string }> = ({
                     <TableHead className="text-slate-400">Location</TableHead>
                     <TableHead className="text-slate-400">Issue Type</TableHead>
                     <TableHead className="text-slate-400">Day Count</TableHead>
-                    <TableHead className="text-slate-400">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger className="flex items-center gap-1.5 cursor-help">
-                            Frequency
-                            <Info className="size-3 text-slate-500" />
-                          </TooltipTrigger>
-                          <TooltipContent className="bg-slate-800 border-slate-700 text-slate-200">
-                            <p className="max-w-[200px] text-xs">
-                              Represents the proportion of days with this issue
-                              during the selected observation period.
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </TableHead>
-                    <TableHead className="text-slate-400">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger className="flex items-center gap-1.5 cursor-help">
-                            Change
-                            <Info className="size-3 text-slate-500" />
-                          </TooltipTrigger>
-                          <TooltipContent className="bg-slate-800 border-slate-700 text-slate-200">
-                            <p className="max-w-[200px] text-xs">
-                              Indicates how the current trend compares to the
-                              previous equivalent period.
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </TableHead>
                     <TableHead className="text-slate-400">Last Seen</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {criticalIssues.map((issue, index) => {
                     const issueInfo = getIssueInfo(issue.issueType);
-                    const frequency = (
-                      (issue.occurrences / issue.days) *
-                      100
-                    ).toFixed(1);
 
                     return (
                       <TableRow
@@ -536,50 +513,6 @@ const CriticalIssuesAnalysis: React.FC<{ className?: string }> = ({
                         </TableCell>
                         <TableCell className="text-white font-medium">
                           {issue.occurrences}
-                        </TableCell>
-                        <TableCell className="text-slate-400">
-                          <div className="flex items-center gap-2">
-                            <div className="w-full bg-slate-700 rounded-full h-2 max-w-[60px]">
-                              <div
-                                className="bg-red-500 h-2 rounded-full"
-                                style={{
-                                  width: `${Math.min(100, parseFloat(frequency))}%`,
-                                }}
-                              />
-                            </div>
-                            <span className="text-xs">{frequency}%</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            {issue.trend === "up" && (
-                              <Badge className="bg-rose-500/15 text-rose-500 border-rose-500/30 hover:bg-rose-500/20 px-2 py-1 flex items-center gap-1.5 font-bold">
-                                <TrendingUp className="size-3.5" />
-                                <span>+{issue.percentageChange}%</span>
-                                <span className="text-[10px] font-medium opacity-80">
-                                  (Worse)
-                                </span>
-                              </Badge>
-                            )}
-                            {issue.trend === "down" && (
-                              <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/20 px-2 py-1 flex items-center gap-1.5 font-bold">
-                                <TrendingDown className="size-3.5" />
-                                <span>{issue.percentageChange}%</span>
-                                <span className="text-[10px] font-medium opacity-80">
-                                  (Better)
-                                </span>
-                              </Badge>
-                            )}
-                            {issue.trend === "stable" && (
-                              <Badge className="bg-slate-500/15 text-slate-400 border-slate-500/30 hover:bg-slate-500/20 px-2 py-1 flex items-center gap-1.5 font-bold">
-                                <span className="size-1 rounded-full bg-slate-500"></span>
-                                <span>{issue.percentageChange}%</span>
-                                <span className="text-[10px] font-medium opacity-80">
-                                  (Stable)
-                                </span>
-                              </Badge>
-                            )}
-                          </div>
                         </TableCell>
                         <TableCell className="text-slate-400 text-sm">
                           {new Date(issue.lastSeen).toLocaleDateString()}
