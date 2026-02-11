@@ -1,0 +1,20 @@
+# CCTV NVR Monitor - Google Sheets Daily Import Cron Job
+# Run every day at 7:15 AM
+
+# Environment variables (set these before running):
+# GOOGLE_SHEETS_API_KEY=your_api_key_here
+# SPREADSHEET_ID=your_spreadsheet_id_here
+# PG_HOST=localhost
+# PG_PORT=5435
+# PG_DATABASE=cctv_nvr
+# PG_USER=postgres
+# PG_PASSWORD=password
+
+# Daily import at 7:15 AM
+15 7 * * * cd /d/work/Internship/cctv-nvr-monitor - Copy && powershell -ExecutionPolicy Bypass -File scripts/daily-google-sheets-import.sh >> /var/log/google-sheets-daily-import.log 2>&1
+
+# Alternative: Run every 6 hours for testing
+# */6 * * * * cd /d/work/Internship/cctv-nvr-monitor - Copy && powershell -ExecutionPolicy Bypass -File scripts/daily-google-sheets-import.sh >> /var/log/google-sheets-daily-import.log 2>&1
+
+# Health check every hour to ensure system is running
+0 * * * * curl -s http://localhost:3001/api/health >> /var/log/health-check.log 2>&1

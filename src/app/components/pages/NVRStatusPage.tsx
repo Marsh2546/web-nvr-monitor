@@ -89,7 +89,11 @@ import {
   getComponentIconColor,
   getStatusColor,
 } from "@/app/utils";
-import { StatusIcon, ComponentStatusIndicator, Pagination } from "@/app/components/shared";
+import {
+  StatusIcon,
+  ComponentStatusIndicator,
+  Pagination,
+} from "@/app/components/shared";
 
 interface NVRStatusPageProps {
   nvrList: NVRStatus[];
@@ -112,10 +116,10 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
   const [sortField, setSortField] = useState<string>("nvr");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
-  // Supabase states
-  const [supabaseData, setSupabaseData] = useState<NVRStatus[]>([]);
-  const [isLoadingSupabase, setIsLoadingSupabase] = useState(false);
-  const [supabaseError, setSupabaseError] = useState<string | null>(null);
+  // PostgreSQL states
+  const [postgresData, setPostgresData] = useState<NVRStatus[]>([]);
+  const [isLoadingPostgres, setIsLoadingPostgres] = useState(false);
+  const [postgresError, setPostgresError] = useState<string | null>(null);
 
   // Chart data state
   const [chartData, setChartData] = useState<any[]>([]);
@@ -265,85 +269,56 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [showDatePicker]);
 
-  // Fetch data from Supabase when date changes
+  // Fetch data from PostgreSQL when date changes
   useEffect(() => {
-    const fetchSupabaseData = async () => {
-      setIsLoadingSupabase(true);
-      setSupabaseError(null);
+    const fetchPostgresData = async () => {
+      setIsLoadingPostgres(true);
+      setPostgresError(null);
 
       try {
-        // Create date range for the entire day in local timezone
-        const startOfDay = new Date(selectedDate);
-        startOfDay.setHours(0, 0, 0, 0);
+        // Create date range for entire day in UTC to match database timezone
+        const now = new Date(selectedDate);
+        const utcDate = new Date(
+          now.getTime() + now.getTimezoneOffset() * 60000,
+        );
+        const startOfDay = new Date(
+          utcDate.getFullYear(),
+          utcDate.getMonth(),
+          utcDate.getDate(),
+        );
+        const endOfDay = new Date(
+          utcDate.getFullYear(),
+          utcDate.getMonth(),
+          utcDate.getDate() + 1,
+        );
 
-        const endOfDay = new Date(selectedDate);
-        endOfDay.setHours(23, 59, 59, 999);
-
-        // Convert to ISO strings for Supabase query
+        // Convert to ISO strings for PostgreSQL query
         const startDate = startOfDay.toISOString();
         const endDate = endOfDay.toISOString();
 
-        console.log("Fetching data for date range:", {
+        console.log("Fetching PostgreSQL data for date range:", {
           selectedDate: selectedDate.toDateString(),
           startDate,
           endDate,
         });
 
         const data = await fetchNVRStatusHistory(startDate, endDate);
-        setSupabaseData(data);
+        setPostgresData(data);
       } catch (error) {
-        console.error("Error fetching Supabase data:", error);
-        setSupabaseError("Failed to fetch data from Supabase");
+        console.error("Error fetching PostgreSQL data:", error);
+        setPostgresError("Failed to fetch data from PostgreSQL");
       } finally {
-        setIsLoadingSupabase(false);
+        setIsLoadingPostgres(false);
       }
     };
 
-    fetchSupabaseData();
+    fetchPostgresData();
   }, [selectedDate]);
 
-  // Initial load on component mount
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      setIsLoadingSupabase(true);
-      setSupabaseError(null);
-
-      try {
-        // Create date range for the entire day in local timezone
-        const startOfDay = new Date(selectedDate);
-        startOfDay.setHours(0, 0, 0, 0);
-
-        const endOfDay = new Date(selectedDate);
-        endOfDay.setHours(23, 59, 59, 999);
-
-        // Convert to ISO strings for Supabase query
-        const startDate = startOfDay.toISOString();
-        const endDate = endOfDay.toISOString();
-
-        console.log("Initial load - Fetching data for date range:", {
-          selectedDate: selectedDate.toDateString(),
-          startDate,
-          endDate,
-        });
-
-        const data = await fetchNVRStatusHistory(startDate, endDate);
-        setSupabaseData(data);
-      } catch (error) {
-        console.error("Error fetching initial Supabase data:", error);
-        setSupabaseError("Failed to fetch data from Supabase");
-      } finally {
-        setIsLoadingSupabase(false);
-      }
-    };
-
-    fetchInitialData();
-  }, []); // Empty dependency array means this runs only once on mount
-
-  // Get unique districts from Supabase data
+  // Get unique districts from PostgreSQL data
   const districts = Array.from(
-    new Set(supabaseData.map((nvr) => nvr.district)),
+    new Set(postgresData.map((nvr) => nvr.district)),
   ).sort();
-
 
   // Toggle row expansion
   const toggleRow = async (id: string, nvrName: string) => {
@@ -356,23 +331,32 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
       // Always fetch fresh snapshots for the current selected date when expanding
       setLoadingSnapshots((prev) => ({ ...prev, [id]: true }));
       try {
-        // Create date range for the entire day in local timezone
-        const startOfDay = new Date(selectedDate);
-        startOfDay.setHours(0, 0, 0, 0);
-
-        const endOfDay = new Date(selectedDate);
-        endOfDay.setHours(23, 59, 59, 999);
-
-        // Convert to ISO strings for fetchNVRSnapshots query
-        const startDate = startOfDay.toISOString();
-        const endDate = endOfDay.toISOString();
+        // Create date range for entire day in UTC to match database timezone
+        const now = new Date(selectedDate);
+        const utcDate = new Date(
+          now.getTime() + now.getTimezoneOffset() * 60000,
+        );
+        const startDate = new Date(
+          utcDate.getFullYear(),
+          utcDate.getMonth(),
+          utcDate.getDate(),
+        );
+        const endDate = new Date(
+          utcDate.getFullYear(),
+          utcDate.getMonth(),
+          utcDate.getDate() + 1,
+        );
 
         console.log(`Fetching snapshots for ${nvrName} for date range:`, {
-          startDate,
-          endDate,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
         });
 
-        const data = await fetchNVRSnapshots(nvrName, startDate, endDate);
+        const data = await fetchNVRSnapshots(
+          nvrName,
+          startDate.toISOString(),
+          endDate.toISOString(),
+        );
         setSnapshots((prev) => ({ ...prev, [id]: data }));
       } catch (error) {
         console.error("Error fetching snapshots:", error);
@@ -419,10 +403,9 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     });
   };
 
-
-  // Filter NVR list from Supabase data
+  // Filter NVR list from PostgreSQL data
   const filteredNVRList = sortItems(
-    supabaseData.filter((nvr) => {
+    postgresData.filter((nvr) => {
       const matchesSearch =
         nvr.nvr.toLowerCase().includes(searchTerm.toLowerCase()) ||
         nvr.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -451,12 +434,12 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
 
   // Calculate summary stats for the cards
   const summaryStats = {
-    total: supabaseData.length,
-    healthy: supabaseData.filter((nvr) => !hasIssues(nvr)).length,
-    attention: supabaseData.filter(
+    total: postgresData.length,
+    healthy: postgresData.filter((nvr) => !hasIssues(nvr)).length,
+    attention: postgresData.filter(
       (nvr) => hasAttentionIssues(nvr) && !hasCriticalIssues(nvr),
     ).length,
-    critical: supabaseData.filter((nvr) => hasCriticalIssues(nvr)).length,
+    critical: postgresData.filter((nvr) => hasCriticalIssues(nvr)).length,
   };
 
   // Pagination calculations
@@ -495,9 +478,6 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
     setExpandedRows(new Set());
   };
 
-  
-
-  
   const renderNVRRow = (nvr: NVRStatus) => {
     const issueStatus = getIssueStatus(nvr);
     const isCritical = hasCriticalIssues(nvr);
@@ -548,11 +528,31 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
             {/* Status Icons - 5 cols */}
             <div className="col-span-5">
               <div className="flex items-center gap-3 justify-center">
-                <ComponentStatusIndicator nvr={nvr} component="onu" label="ONU" />
-                <ComponentStatusIndicator nvr={nvr} component="nvr" label="NVR" />
-                <ComponentStatusIndicator nvr={nvr} component="hdd" label="HDD" />
-                <ComponentStatusIndicator nvr={nvr} component="view" label="View" />
-                <ComponentStatusIndicator nvr={nvr} component="login" label="Login" />
+                <ComponentStatusIndicator
+                  nvr={nvr}
+                  component="onu"
+                  label="ONU"
+                />
+                <ComponentStatusIndicator
+                  nvr={nvr}
+                  component="nvr"
+                  label="NVR"
+                />
+                <ComponentStatusIndicator
+                  nvr={nvr}
+                  component="hdd"
+                  label="HDD"
+                />
+                <ComponentStatusIndicator
+                  nvr={nvr}
+                  component="view"
+                  label="View"
+                />
+                <ComponentStatusIndicator
+                  nvr={nvr}
+                  component="login"
+                  label="Login"
+                />
               </div>
             </div>
 
@@ -1306,13 +1306,15 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 renderNVRRow(nvr),
               )}
             </div>
-            <Pagination 
+            <Pagination
               currentPage={currentPage}
               totalPages={getTotalPages(filteredNVRList)}
               itemsPerPage={itemsPerPage}
               totalItems={filteredNVRList.length}
               onPageChange={setCurrentPage}
-              onItemsPerPageChange={(value) => handleItemsPerPageChange(value.toString())}
+              onItemsPerPageChange={(value) =>
+                handleItemsPerPageChange(value.toString())
+              }
               label="units"
             />
           </TabsContent>
@@ -1333,13 +1335,15 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 </p>
               </div>
             )}
-            <Pagination 
+            <Pagination
               currentPage={currentPage}
               totalPages={getTotalPages(problemNVRs)}
               itemsPerPage={itemsPerPage}
               totalItems={problemNVRs.length}
               onPageChange={setCurrentPage}
-              onItemsPerPageChange={(value) => handleItemsPerPageChange(value.toString())}
+              onItemsPerPageChange={(value) =>
+                handleItemsPerPageChange(value.toString())
+              }
               label="problem units"
             />
           </TabsContent>
@@ -1358,13 +1362,15 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 </p>
               </div>
             )}
-            <Pagination 
+            <Pagination
               currentPage={currentPage}
               totalPages={getTotalPages(criticalNVRs)}
               itemsPerPage={itemsPerPage}
               totalItems={criticalNVRs.length}
               onPageChange={setCurrentPage}
-              onItemsPerPageChange={(value) => handleItemsPerPageChange(value.toString())}
+              onItemsPerPageChange={(value) =>
+                handleItemsPerPageChange(value.toString())
+              }
               label="critical units"
             />
           </TabsContent>
@@ -1383,13 +1389,15 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
                 </p>
               </div>
             )}
-            <Pagination 
+            <Pagination
               currentPage={currentPage}
               totalPages={getTotalPages(attentionNVRs)}
               itemsPerPage={itemsPerPage}
               totalItems={attentionNVRs.length}
               onPageChange={setCurrentPage}
-              onItemsPerPageChange={(value) => handleItemsPerPageChange(value.toString())}
+              onItemsPerPageChange={(value) =>
+                handleItemsPerPageChange(value.toString())
+              }
               label="attention units"
             />
           </TabsContent>
@@ -1399,13 +1407,15 @@ export function NVRStatusPage({ nvrList, onPageChange }: NVRStatusPageProps) {
             <div className="space-y-3">
               {getPaginatedItems(normalNVRs).map((nvr) => renderNVRRow(nvr))}
             </div>
-            <Pagination 
+            <Pagination
               currentPage={currentPage}
               totalPages={getTotalPages(normalNVRs)}
               itemsPerPage={itemsPerPage}
               totalItems={normalNVRs.length}
               onPageChange={setCurrentPage}
-              onItemsPerPageChange={(value) => handleItemsPerPageChange(value.toString())}
+              onItemsPerPageChange={(value) =>
+                handleItemsPerPageChange(value.toString())
+              }
               label="healthy units"
             />
           </TabsContent>

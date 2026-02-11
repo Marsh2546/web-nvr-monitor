@@ -1,7 +1,6 @@
 import { NVRStatus } from "@/app/types/nvr";
-import { projectId, publicAnonKey } from "../../../utils/supabase/info";
 
-const BASE_URL = `https://${projectId}.supabase.co/functions/v1/server`;
+const BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_FALLBACK_URL || 'http://localhost:3001';
 
 interface APIResponse {
   success: boolean;
@@ -16,7 +15,8 @@ interface APIResponse {
 
 export async function fetchNVRStatus(useCache = false): Promise<NVRStatus[]> {
   try {
-    const endpoint = useCache ? "/nvr-status/cached" : "/nvr-status";
+    // Use the correct endpoint for Google Sheets data
+    const endpoint = useCache ? "/api/nvr-status/cached" : "/api/nvr-status";
     const url = `${BASE_URL}${endpoint}`;
 
     console.log(`Fetching NVR status from: ${url}`);
@@ -25,7 +25,7 @@ export async function fetchNVRStatus(useCache = false): Promise<NVRStatus[]> {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${publicAnonKey}`,
+        "Accept": "application/json",
       },
     });
 
@@ -50,14 +50,14 @@ export async function fetchNVRStatus(useCache = false): Promise<NVRStatus[]> {
 
     return result.data;
   } catch (error) {
-    console.error("Error fetching NVR status:", error);
+    console.error("Failed to fetch NVR status:", error);
     throw error;
   }
 }
 
 export async function cacheNVRStatus(): Promise<void> {
   try {
-    const url = `${BASE_URL}/nvr-status/cache`;
+    const url = `${BASE_URL}/api/nvr-status/cache`;
 
     console.log("Caching NVR status data...");
 
@@ -65,22 +65,22 @@ export async function cacheNVRStatus(): Promise<void> {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${publicAnonKey}`,
+        "Accept": "application/json",
       },
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error("Cache error:", errorData);
+      console.error("Cache API error:", errorData);
       throw new Error(
         errorData.error || `HTTP ${response.status}: ${response.statusText}`,
       );
     }
 
     const result = await response.json();
-    console.log("Successfully cached NVR data:", result);
+    console.log("Cache response:", result);
   } catch (error) {
-    console.error("Error caching NVR status:", error);
+    console.error("Failed to cache NVR status:", error);
     throw error;
   }
 }

@@ -11,15 +11,17 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3001;
 
-// Database connection
-const pool = new Pool({
-  host: process.env.DB_HOST || "localhost",
-  port: parseInt(process.env.DB_PORT || "5432"),
-  database: process.env.DB_NAME || "cctv_nvr",
-  user: process.env.DB_USER || "postgres",
-  password: process.env.DB_PASSWORD || "password",
-  ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false,
-});
+import {
+  pool,
+  fetchNVRStations,
+  fetchCameras,
+  fetchNVRSnapshots,
+  fetchSnapshotLogs,
+  fetchNVRStatusHistory,
+  fetchAllNVRHistory,
+  query,
+  testDatabaseConnection,
+} from "./databaseService.js";
 
 // Middleware
 app.use(cors());
@@ -28,95 +30,113 @@ app.use("/snapshots", express.static(path.join(__dirname, "../../snapshots")));
 
 // Health check endpoint
 app.get("/health", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT NOW() as current_time");
+  const isHealthy = await testDatabaseConnection();
+  if (isHealthy) {
     res.json({
       status: "healthy",
-      timestamp: result.rows[0].current_time,
+      timestamp: new Date().toISOString(),
       database: "connected",
     });
-  } catch (error: any) {
+  } else {
     res.status(500).json({
       status: "unhealthy",
-      error: error.message,
+      database: "disconnected",
     });
   }
 });
 
 // Get all NVR stations
-app.get("/api/nvr-stations", async (req, res) => {
+app.get("/api/nvr-status-history", async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT * FROM nvr_stations ORDER BY nvr_name",
-    );
-    res.json(result.rows);
+    const history = await fetchAllNVRHistory();
+    res.json(history);
   } catch (error) {
-    console.error("Error fetching NVR stations:", error);
-    res.status(500).json({ error: "Failed to fetch NVR stations" });
+    console.error("Error fetching NVR status history:", error);
+    res.status(500).json({ error: "Failed to fetch NVR status history" });
+  }
+});
+
+// Get NVR status (for compatibility with nvrService.ts)
+app.get("/api/nvr-status", async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const history = await fetchNVRStatusHistory(
+      startDate as string,
+      endDate as string,
+    );
+
+    // Transform to match legacy format if needed by nvrService.ts
+    const transformedData = history.map((item) => ({
+      id: item.nvr_id?.toString() || "", // Ensure id is string
+      nvr: item.nvr_name,
+      district: item.district,
+      location: item.location,
+      onu_ip: item.onu_ip,
+      ping_onu: item.ping_onu,
+      nvr_ip: item.nvr_ip,
+      ping_nvr: item.ping_nvr,
+      hdd_status: item.hdd_status,
+      normal_view: item.normal_view,
+      check_login: item.check_login,
+      camera_count: item.camera_count || 0,
+      recorded_at: item.recorded_at,
+    }));
+
+    res.json({
+      success: true,
+      data: transformedData,
+      count: transformedData.length,
+      lastUpdated: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Error fetching NVR status:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch NVR status",
+    });
   }
 });
 
 // Get all cameras
 app.get("/api/cameras", async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT c.*, ns.nvr_name 
-      FROM cameras c 
-      JOIN nvr_stations ns ON c.nvr_station_id = ns.id 
-      ORDER BY ns.nvr_name, c.camera_channel
-    `);
-    res.json(result.rows);
+    const cameras = await fetchCameras();
+    res.json(cameras);
   } catch (error) {
     console.error("Error fetching cameras:", error);
     res.status(500).json({ error: "Failed to fetch cameras" });
   }
 });
 
-// Get snapshot history
+// Get NVR status history OR snapshots
 app.get("/api/snapshots", async (req, res) => {
   try {
-    const { nvrName, startDate, endDate, limit = 50 } = req.query;
-
-    let query = `
-      SELECT 
-        nsh.id,
-        nsh.camera_name,
-        nsh.nvr_ip,
-        nsh.nvr_name,
-        nsh.snapshot_status,
-        nsh.comment,
-        nsh.image_url,
-        nsh.recorded_at,
-        nsh.created_at
-      FROM nvr_snapshot_history nsh
-      WHERE 1=1
-    `;
-    const params: any[] = [];
-    let paramIndex = 1;
+    const { nvrName, startDate, endDate, limit } = req.query;
 
     if (nvrName) {
-      query += ` AND nsh.nvr_name = $${paramIndex++}`;
-      params.push(nvrName);
+      console.log(`Fetching snapshots for NVR: ${nvrName}`);
+      const snapshots = await fetchNVRSnapshots(
+        nvrName as string,
+        startDate as string,
+        endDate as string,
+      );
+      if (limit) {
+        res.json(snapshots.slice(0, Number(limit)));
+      } else {
+        res.json(snapshots);
+      }
+    } else {
+      console.log(`Fetching global NVR status history`);
+      const history = await fetchNVRStatusHistory(
+        startDate as string,
+        endDate as string,
+        limit ? Number(limit) : undefined,
+      );
+      res.json(history);
     }
-
-    if (startDate) {
-      query += ` AND nsh.recorded_at >= $${paramIndex++}`;
-      params.push(startDate);
-    }
-
-    if (endDate) {
-      query += ` AND nsh.recorded_at <= $${paramIndex++}`;
-      params.push(endDate);
-    }
-
-    query += ` ORDER BY nsh.recorded_at DESC LIMIT $${paramIndex}`;
-    params.push(limit);
-
-    const result = await pool.query(query, params);
-    res.json(result.rows);
   } catch (error) {
-    console.error("Error fetching snapshots:", error);
-    res.status(500).json({ error: "Failed to fetch snapshots" });
+    console.error("Error fetching NVR data:", error);
+    res.status(500).json({ error: "Failed to fetch NVR data" });
   }
 });
 
@@ -124,26 +144,11 @@ app.get("/api/snapshots", async (req, res) => {
 app.get("/api/snapshot-logs", async (req, res) => {
   try {
     const { cameraId, limit = 50 } = req.query;
-
-    let query = `
-      SELECT sl.*, c.camera_name, ns.nvr_name 
-      FROM snapshot_logs sl 
-      JOIN cameras c ON sl.camera_id = c.id 
-      JOIN nvr_stations ns ON c.nvr_station_id = ns.id
-    `;
-    const params: any[] = [];
-    let paramIndex = 1;
-
-    if (cameraId) {
-      query += ` WHERE sl.camera_id = $${paramIndex++}`;
-      params.push(cameraId);
-    }
-
-    query += ` ORDER BY sl.created_at DESC LIMIT $${paramIndex}`;
-    params.push(limit);
-
-    const result = await pool.query(query, params);
-    res.json(result.rows);
+    const logs = await fetchSnapshotLogs(
+      cameraId ? Number(cameraId) : undefined,
+      Number(limit),
+    );
+    res.json(logs);
   } catch (error) {
     console.error("Error fetching snapshot logs:", error);
     res.status(500).json({ error: "Failed to fetch snapshot logs" });
