@@ -262,9 +262,18 @@ const CriticalIssuesAnalysis: React.FC<{ className?: string }> = ({
         });
 
         // Convert to array and calculate percentage change
-        const issues: CriticalIssue[] = Array.from(issueMap.values()).map(
-          (issue) => {
+        const allIssues = Array.from(issueMap.values())
+          .map((issue) => {
             const issueInfo = getIssueInfo(issue.issueType);
+
+            // Calculate unique days from dates array
+            const uniqueDays = new Set(issue.dates.map(date => date.split('T')[0]));
+            const actualDays = uniqueDays.size;
+
+            // For All Time mode, only show issues that occurred more than 7 days
+            if (timeRange === "all" && actualDays <= 7) {
+              return null;
+            }
 
             // Calculate percentage change (mock calculation for now)
             const percentageChange = Math.floor(Math.random() * 40) - 20; // -20% to +20%
@@ -274,17 +283,23 @@ const CriticalIssuesAnalysis: React.FC<{ className?: string }> = ({
             else if (percentageChange < -5) trend = "down";
 
             return {
-              ...issue,
+              nvrId: issue.nvrId,
+              nvrName: issue.nvrName,
+              district: issue.district,
+              location: issue.location,
+              issueType: issue.issueType,
               issueIcon: issueInfo.icon,
-              days: timeRange === "3days" ? 3 : timeRange === "7days" ? 7 : 999,
+              occurrences: issue.occurrences,
+              days: timeRange === "3days" ? 3 : timeRange === "7days" ? 7 : actualDays,
               percentageChange,
               trend,
-            };
-          },
-        );
+              lastSeen: issue.lastSeen,
+            } as CriticalIssue;
+          })
+          .filter((issue): issue is CriticalIssue => issue !== null);
 
         // Sort by occurrences (highest first), then by percentage change
-        issues.sort((a, b) => {
+        allIssues.sort((a: CriticalIssue, b: CriticalIssue) => {
           if (b.occurrences !== a.occurrences) {
             return b.occurrences - a.occurrences;
           }
@@ -292,10 +307,10 @@ const CriticalIssuesAnalysis: React.FC<{ className?: string }> = ({
         });
 
         // Store all issues for pagination
-        setAllCriticalIssues(issues);
+        setAllCriticalIssues(allIssues);
 
         // Set initial page items (top 10)
-        setCriticalIssues(issues.slice(0, itemsPerPage));
+        setCriticalIssues(allIssues.slice(0, itemsPerPage));
       } catch (error) {
         console.error("Error analyzing critical issues:", error);
       } finally {
